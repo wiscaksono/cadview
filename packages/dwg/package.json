@@ -1,6 +1,6 @@
 {
   "name": "@cadview/dwg",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DWG file format support for @cadview/core via LibreDWG WASM",
   "license": "GPL-3.0-only",
   "type": "module",
@@ -26,7 +26,7 @@
   ],
   "sideEffects": false,
   "peerDependencies": {
-    "@cadview/core": ">=0.1.0"
+    "@cadview/core": ">=0.2.0"
   },
   "devDependencies": {
     "@cadview/core": "workspace:*",

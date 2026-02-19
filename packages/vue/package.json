@@ -1,6 +1,6 @@
 {
   "name": "@cadview/vue",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "description": "Vue 3 wrapper for @cadview/core — CAD/DXF file viewer component",
