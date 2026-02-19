@@ -14,6 +14,26 @@ import { computeEntitiesBounds } from '../utils/bbox.js';
 
 export type Tool = 'pan' | 'select' | 'measure';
 
+/**
+ * Interface for registering custom file format converters.
+ * Converters are checked in order during `loadFile()` and `loadBuffer()`.
+ * The first converter whose `detect()` returns true will be used.
+ */
+export interface FormatConverter {
+  /**
+   * Return true if the buffer is in this format.
+   * Implementations should check magic bytes, not file extensions.
+   * Must not throw — return false on any error.
+   */
+  detect(buffer: ArrayBuffer): boolean;
+
+  /**
+   * Convert the buffer to a DXF string.
+   * The returned string must be valid DXF parseable by `parseDxf()`.
+   */
+  convert(buffer: ArrayBuffer): Promise<string>;
+}
+
 export interface CadViewerOptions {
   theme?: Theme;
   backgroundColor?: string;
@@ -22,6 +42,8 @@ export interface CadViewerOptions {
   maxZoom?: number;
   zoomSpeed?: number;
   initialTool?: Tool;
+  /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
+  formatConverters?: FormatConverter[];
 }
 
 interface ResolvedOptions {
@@ -47,9 +69,11 @@ export class CadViewer {
   private currentTool: Tool;
   private inputHandler: InputHandler;
   private resizeObserver: ResizeObserver;
+  private formatConverters: FormatConverter[];
   private selectedEntityIndex: number = -1;
   private renderPending: boolean = false;
   private destroyed: boolean = false;
+  private loadGeneration: number = 0;
   private mouseScreenX: number = 0;
   private mouseScreenY: number = 0;
 
@@ -65,6 +89,7 @@ export class CadViewer {
       initialTool: options?.initialTool ?? 'pan',
     };
 
+    this.formatConverters = options?.formatConverters ?? [];
     this.renderer = new CanvasRenderer(canvas);
     this.camera = new Camera(this.options);
     this.layerManager = new LayerManager();
@@ -89,17 +114,105 @@ export class CadViewer {
 
   // === Loading ===
 
-  async loadFile(file: File): Promise<void> {
-    const buffer = await file.arrayBuffer();
-    this.loadArrayBuffer(buffer);
+  /**
+   * Throws if the viewer has been destroyed.
+   * Call at the start of any public method that mutates state.
+   */
+  private guardDestroyed(): void {
+    if (this.destroyed) {
+      throw new Error('CadViewer: cannot call methods on a destroyed instance.');
+    }
   }
 
+  /**
+   * Run registered format converters on a buffer.
+   * Returns the converted DXF string if a converter matched, or null otherwise.
+   * Each converter's detect() is wrapped in try/catch — a throwing detect() is skipped.
+   */
+  private async runConverters(buffer: ArrayBuffer): Promise<string | null> {
+    for (const converter of this.formatConverters) {
+      let detected = false;
+      try {
+        detected = converter.detect(buffer);
+      } catch {
+        // detect() should not throw — skip this converter
+        continue;
+      }
+      if (detected) {
+        return converter.convert(buffer);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Load a CAD file from a browser File object.
+   * Automatically detects the format using registered converters (e.g. DWG).
+   * Falls back to DXF parsing if no converter matches.
+   */
+  async loadFile(file: File): Promise<void> {
+    this.guardDestroyed();
+    const generation = ++this.loadGeneration;
+
+    const buffer = await file.arrayBuffer();
+    if (this.destroyed || generation !== this.loadGeneration) return;
+
+    const dxfString = await this.runConverters(buffer);
+    if (this.destroyed || generation !== this.loadGeneration) return;
+
+    this.doc = dxfString != null ? parseDxf(dxfString) : parseDxf(buffer);
+    this.onDocumentLoaded();
+  }
+
+  /**
+   * Load a CAD file from an ArrayBuffer with format converter support.
+   * Unlike `loadArrayBuffer()` (sync, DXF-only), this method is async and
+   * checks registered FormatConverters for non-DXF formats.
+   */
+  async loadBuffer(buffer: ArrayBuffer): Promise<void> {
+    this.guardDestroyed();
+    const generation = ++this.loadGeneration;
+
+    const dxfString = await this.runConverters(buffer);
+    if (this.destroyed || generation !== this.loadGeneration) return;
+
+    this.doc = dxfString != null ? parseDxf(dxfString) : parseDxf(buffer);
+    this.onDocumentLoaded();
+  }
+
+  /**
+   * Load a pre-parsed DxfDocument directly, bypassing the parser.
+   * Useful for custom parsers or pre-processed documents.
+   */
+  loadDocument(doc: DxfDocument): void {
+    this.guardDestroyed();
+    ++this.loadGeneration;
+
+    if (!doc || !Array.isArray(doc.entities) || !(doc.layers instanceof Map)) {
+      throw new Error('CadViewer: invalid DxfDocument — expected entities array and layers Map.');
+    }
+
+    this.doc = doc;
+    this.onDocumentLoaded();
+  }
+
+  /**
+   * Load a DXF string directly (synchronous, no format conversion).
+   */
   loadString(dxf: string): void {
+    this.guardDestroyed();
+    ++this.loadGeneration;
     this.doc = parseDxf(dxf);
     this.onDocumentLoaded();
   }
 
+  /**
+   * Load a DXF file from an ArrayBuffer (synchronous, no format conversion).
+   * For format conversion support (e.g. DWG), use `loadFile()` or `loadBuffer()` instead.
+   */
   loadArrayBuffer(buffer: ArrayBuffer): void {
+    this.guardDestroyed();
+    ++this.loadGeneration;
     this.doc = parseDxf(buffer);
     this.onDocumentLoaded();
   }
@@ -108,6 +221,8 @@ export class CadViewer {
    * Clear the current document and reset all state without destroying the viewer.
    */
   clearDocument(): void {
+    this.guardDestroyed();
+    ++this.loadGeneration;
     this.doc = null;
     this.selectedEntityIndex = -1;
     this.spatialIndex.clear();
@@ -139,6 +254,7 @@ export class CadViewer {
   // === Camera Controls ===
 
   fitToView(): void {
+    this.guardDestroyed();
     if (!this.doc) return;
 
     const bounds = this.computeDocumentBounds();
@@ -153,6 +269,7 @@ export class CadViewer {
   }
 
   zoomTo(scale: number): void {
+    this.guardDestroyed();
     const rect = this.canvas.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
@@ -163,6 +280,7 @@ export class CadViewer {
   }
 
   panTo(worldX: number, worldY: number): void {
+    this.guardDestroyed();
     const rect = this.canvas.getBoundingClientRect();
     const vt = this.camera.getTransform();
     const currentSX = worldX * vt.scale + vt.offsetX;
@@ -190,11 +308,13 @@ export class CadViewer {
   }
 
   setLayerVisible(name: string, visible: boolean): void {
+    this.guardDestroyed();
     this.layerManager.setVisible(name, visible);
     this.requestRender();
   }
 
   setLayerColor(name: string, color: string): void {
+    this.guardDestroyed();
     this.layerManager.setColorOverride(name, color);
     this.requestRender();
   }
@@ -202,6 +322,7 @@ export class CadViewer {
   // === Theme ===
 
   setTheme(theme: Theme): void {
+    this.guardDestroyed();
     this.options.theme = theme;
     this.requestRender();
   }
@@ -211,6 +332,7 @@ export class CadViewer {
   }
 
   setBackgroundColor(color: string): void {
+    this.guardDestroyed();
     this.options.backgroundColor = color;
     this.requestRender();
   }
@@ -218,6 +340,7 @@ export class CadViewer {
   // === Tools ===
 
   setTool(tool: Tool): void {
+    this.guardDestroyed();
     if (this.currentTool === 'measure' && tool !== 'measure') {
       this.measureTool.deactivate();
     }

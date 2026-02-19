@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import type { Tool, Theme } from '@cadview/core';
+	import type { Tool, Theme, FormatConverter } from '@cadview/core';
 	import type { CadViewer as CadViewerInstance } from '@cadview/svelte';
 
 	let mounted = $state(false);
@@ -19,6 +19,7 @@
 	let cadViewerRef: CadViewerInstance | null = $state(null);
 	let file: File | ArrayBuffer | null = $state(null);
 
+	let formatConverters: FormatConverter[] = $state([]);
 	let fileInputEl: HTMLInputElement | undefined = $state(undefined);
 
 	const tools: { id: Tool; label: string }[] = [
@@ -30,11 +31,26 @@
 	let toolIndex = $derived(tools.findIndex((t) => t.id === activeTool));
 
 	onMount(async () => {
-		try {
-			const mod = await import('@cadview/svelte');
-			CadViewerComponent = mod.CadViewer;
+		// Import viewer and DWG converter in parallel.
+		// Both are lazy-loaded to avoid WASM/SSR resolution issues.
+		// formatConverters MUST be set before mounted=true, because the
+		// Svelte CadViewer wrapper captures them with untrack() at creation.
+		const [svelteResult, dwgResult] = await Promise.allSettled([
+			import('@cadview/svelte'),
+			import('@cadview/dwg')
+		]);
+
+		// Register DWG converter first (before viewer renders)
+		if (dwgResult.status === 'fulfilled') {
+			formatConverters = [dwgResult.value.dwgConverter];
+		}
+
+		// Then mount the viewer component
+		if (svelteResult.status === 'fulfilled') {
+			CadViewerComponent = svelteResult.value.CadViewer;
 			mounted = true;
-		} catch (err) {
+		} else {
+			const err = svelteResult.reason;
 			loadError = err instanceof Error ? err.message : 'Failed to load viewer module';
 		}
 	});
@@ -109,14 +125,21 @@
 		e.preventDefault();
 	}
 
+	const ACCEPTED_EXTENSIONS = ['.dxf', '.dwg'];
+
+	function isAcceptedFile(name: string): boolean {
+		const lower = name.toLowerCase();
+		return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+	}
+
 	async function onDrop(e: DragEvent) {
 		e.preventDefault();
 		dragCounter = 0;
 		showDrop = false;
 
 		const f = e.dataTransfer?.files[0];
-		if (!f || !f.name.toLowerCase().endsWith('.dxf')) {
-			statusText = 'Please drop a .dxf file';
+		if (!f || !isAcceptedFile(f.name)) {
+			statusText = 'Please drop a .dxf or .dwg file';
 			return;
 		}
 
@@ -138,7 +161,7 @@
 						Open File
 						<input
 							type="file"
-							accept=".dxf"
+							accept=".dxf,.dwg"
 							hidden
 							bind:this={fileInputEl}
 							onchange={handleFileInput}
@@ -204,6 +227,7 @@
 						{file}
 						theme={currentTheme}
 						tool={activeTool}
+						{formatConverters}
 						class="demo-cadviewer"
 						onselect={(e) => {
 							statusText = `Selected: ${e.entity.type} (layer: ${e.entity.layer})`;
@@ -277,14 +301,14 @@
 								stroke-linecap="round"
 							/></svg
 						>
-						<span>Drop .dxf file</span>
+						<span>Drop .dxf or .dwg file</span>
 					</div>
 				</div>
 
 				<!-- Empty state -->
 				{#if mounted && !fileLoaded && !loadError}
 					<div class="demo-empty-state">
-						<p>Click <strong>Load Sample</strong> or drag &amp; drop a .dxf file</p>
+						<p>Click <strong>Load Sample</strong> or drag &amp; drop a .dxf / .dwg file</p>
 					</div>
 				{/if}
 			</div>

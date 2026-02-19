@@ -13,44 +13,47 @@ export function deBoor(
   // Find knot span index
   const n = controlPoints.length - 1;
   let k = degree;
-  while (k < n && knots[k + 1] <= t) k++;
+  while (k < n && knots[k + 1]! <= t) k++;
 
-  // Copy affected control points
+  // Copy affected control points (indices guaranteed in [0, n] by clamping k to [degree, n])
   const d: Point3D[] = [];
   const w: number[] = [];
   for (let j = 0; j <= degree; j++) {
     const idx = k - degree + j;
-    d.push({ ...controlPoints[idx] });
-    w.push(weights ? weights[idx] : 1.0);
+    d.push({ ...controlPoints[idx]! });
+    w.push(weights ? weights[idx]! : 1.0);
   }
 
   // De Boor recursion
   for (let r = 1; r <= degree; r++) {
     for (let j = degree; j >= r; j--) {
       const i = k - degree + j;
-      const denom = knots[i + degree - r + 1] - knots[i];
+      const denom = knots[i + degree - r + 1]! - knots[i]!;
       if (Math.abs(denom) < 1e-10) continue;
-      const alpha = (t - knots[i]) / denom;
+      const alpha = (t - knots[i]!) / denom;
+
+      const dj = d[j]!;
+      const djPrev = d[j - 1]!;
 
       if (weights) {
         // NURBS: weighted interpolation
-        const w0 = w[j - 1] * (1 - alpha);
-        const w1 = w[j] * alpha;
+        const w0 = w[j - 1]! * (1 - alpha);
+        const w1 = w[j]! * alpha;
         const wSum = w0 + w1;
         if (Math.abs(wSum) < 1e-10) continue;
-        d[j].x = (d[j - 1].x * w0 + d[j].x * w1) / wSum;
-        d[j].y = (d[j - 1].y * w0 + d[j].y * w1) / wSum;
-        d[j].z = (d[j - 1].z * w0 + d[j].z * w1) / wSum;
+        dj.x = (djPrev.x * w0 + dj.x * w1) / wSum;
+        dj.y = (djPrev.y * w0 + dj.y * w1) / wSum;
+        dj.z = (djPrev.z * w0 + dj.z * w1) / wSum;
         w[j] = wSum;
       } else {
-        d[j].x = (1 - alpha) * d[j - 1].x + alpha * d[j].x;
-        d[j].y = (1 - alpha) * d[j - 1].y + alpha * d[j].y;
-        d[j].z = (1 - alpha) * d[j - 1].z + alpha * d[j].z;
+        dj.x = (1 - alpha) * djPrev.x + alpha * dj.x;
+        dj.y = (1 - alpha) * djPrev.y + alpha * dj.y;
+        dj.z = (1 - alpha) * djPrev.z + alpha * dj.z;
       }
     }
   }
 
-  return d[degree];
+  return d[degree] ?? { x: 0, y: 0, z: 0 };
 }
 
 /**
@@ -64,10 +67,11 @@ export function fitPointsToPolyline(fitPoints: Point3D[]): Point2D[] {
   const segments = 10; // subdivisions per segment
 
   for (let i = 0; i < n - 1; i++) {
-    const p0 = fitPoints[Math.max(0, i - 1)];
-    const p1 = fitPoints[i];
-    const p2 = fitPoints[Math.min(n - 1, i + 1)];
-    const p3 = fitPoints[Math.min(n - 1, i + 2)];
+    // Indices are clamped to [0, n-1] so array access is always valid
+    const p0 = fitPoints[Math.max(0, i - 1)]!;
+    const p1 = fitPoints[i]!;
+    const p2 = fitPoints[Math.min(n - 1, i + 1)]!;
+    const p3 = fitPoints[Math.min(n - 1, i + 2)]!;
 
     for (let j = 0; j <= (i === n - 2 ? segments : segments - 1); j++) {
       const t = j / segments;
@@ -114,8 +118,9 @@ export function evaluateSpline(entity: DxfSplineEntity, pixelSize: number): Poin
   if (entity.knots.length < entity.controlPoints.length + entity.degree + 1) return [];
 
   const points: Point2D[] = [];
-  const tMin = entity.knots[entity.degree];
-  const tMax = entity.knots[entity.knots.length - entity.degree - 1];
+  // Knot indices guaranteed valid by length guard above
+  const tMin = entity.knots[entity.degree]!;
+  const tMax = entity.knots[entity.knots.length - entity.degree - 1]!;
 
   if (tMax <= tMin) return [];
 

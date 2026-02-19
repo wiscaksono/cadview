@@ -59,7 +59,7 @@ function decodeInput(input: string | ArrayBuffer): string {
   // Check for binary DXF sentinel
   const sentinelBytes = new TextDecoder('ascii').decode(bytes.slice(0, BINARY_DXF_SENTINEL.length));
   if (sentinelBytes === BINARY_DXF_SENTINEL) {
-    throw new Error('Binary DXF format is not supported. Please export as ASCII DXF.');
+    throw new DxfParseError('Binary DXF format is not supported. Please export as ASCII DXF.');
   }
 
   // First pass: decode as UTF-8
@@ -162,8 +162,8 @@ export function parseDxf(input: string | ArrayBuffer): DxfDocument {
   try {
     text = decodeInput(input);
   } catch (err) {
-    if (err instanceof Error && err.message.includes('Binary DXF')) {
-      throw err; // Re-throw binary DXF error as-is
+    if (err instanceof DxfParseError) {
+      throw err; // Re-throw parse errors as-is (e.g. binary DXF detection)
     }
     throw new DxfParseError('Failed to decode DXF input.', err);
   }

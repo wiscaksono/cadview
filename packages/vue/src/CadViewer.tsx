@@ -10,6 +10,7 @@ import {
 import {
   CadViewer as CoreCadViewer,
   type CadViewerOptions,
+  type FormatConverter,
   type DxfLayer,
   type SelectEvent,
   type MeasureEvent,
@@ -38,6 +39,10 @@ export const CadViewer = defineComponent({
       type: Object as PropType<Omit<CadViewerOptions, 'theme' | 'initialTool'>>,
       default: () => ({}),
     },
+    formatConverters: {
+      type: Array as PropType<FormatConverter[]>,
+      default: undefined,
+    },
   },
 
   emits: ['select', 'measure', 'viewchange', 'layers-loaded'],
@@ -52,6 +57,7 @@ export const CadViewer = defineComponent({
       const viewer = new CoreCadViewer(canvasRef.value, {
         theme: props.theme,
         initialTool: props.tool,
+        formatConverters: props.formatConverters,
         ...props.options,
       });
       viewerRef.value = viewer;
@@ -80,24 +86,33 @@ export const CadViewer = defineComponent({
       },
     );
 
+    let loadCancelled = false;
+
     watch(
       () => props.file,
       async (newFile) => {
         const viewer = viewerRef.value;
         if (!viewer || !newFile) return;
+        loadCancelled = true;  // cancel any in-flight load
+        loadCancelled = false;
+        const wasCancelled = () => loadCancelled;
 
         try {
           if (newFile instanceof File) {
             await viewer.loadFile(newFile);
           } else if (newFile instanceof ArrayBuffer) {
-            viewer.loadArrayBuffer(newFile);
+            await viewer.loadBuffer(newFile);
           } else if (typeof newFile === 'string') {
             viewer.loadString(newFile);
           }
 
-          emit('layers-loaded', viewer.getLayers() as DxfLayer[]);
+          if (!wasCancelled()) {
+            emit('layers-loaded', viewer.getLayers() as DxfLayer[]);
+          }
         } catch (err) {
-          console.error('CadViewer: failed to load file', err);
+          if (!wasCancelled()) {
+            console.error('CadViewer: failed to load file', err);
+          }
         }
       },
     );
