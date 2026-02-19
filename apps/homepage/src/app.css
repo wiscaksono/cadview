@@ -1,0 +1,207 @@
+/* ──────────────────────────────────────────────────────────
+   @cadview homepage — "Precision Engineering" aesthetic
+   Global styles: variables, reset, background, animations
+   ────────────────────────────────────────────────────────── */
+
+:root {
+	--bg: #08090d;
+	--bg-elevated: #0c0d13;
+	--surface: #0f1117;
+	--surface-2: #13151e;
+	--border: #1a1d2a;
+	--border-hover: #252940;
+	--grid-dot: #151824;
+	--primary: #22d3ee;
+	--primary-dim: #0e7490;
+	--primary-glow: rgba(34, 211, 238, 0.08);
+	--accent: #f97316;
+	--text: #e1e7ef;
+	--text-2: #b0b8c8;
+	--muted: #5b6378;
+	--code-bg: #0a0b10;
+
+	--font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', monospace;
+	--font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+	--max-w: 1100px;
+	--gutter: 24px;
+	--nav-h: 56px;
+}
+
+/* ─── RESET ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+html {
+	font-size: 16px;
+	scroll-behavior: smooth;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+body {
+	font-family: var(--font-sans);
+	color: var(--text);
+	background: var(--bg);
+	line-height: 1.6;
+	overflow-x: hidden;
+}
+a {
+	color: var(--primary);
+	text-decoration: none;
+	transition: color 0.2s;
+}
+a:hover {
+	color: var(--text);
+}
+button {
+	font-family: inherit;
+	cursor: pointer;
+	border: none;
+	background: none;
+	color: inherit;
+}
+img {
+	display: block;
+	max-width: 100%;
+}
+
+/* ─── DOT GRID BACKGROUND ──────────────────────────────── */
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -2;
+	background-image: radial-gradient(circle, var(--grid-dot) 1px, transparent 1px);
+	background-size: 32px 32px;
+	background-position: 16px 16px;
+	opacity: 0.6;
+}
+
+/* ─── SCANLINE OVERLAY ─────────────────────────────────── */
+body::after {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: repeating-linear-gradient(
+		0deg,
+		transparent,
+		transparent 3px,
+		rgba(255, 255, 255, 0.008) 3px,
+		rgba(255, 255, 255, 0.008) 4px
+	);
+	pointer-events: none;
+}
+
+/* ─── SCROLL REVEAL ─────────────────────────────────────── */
+.reveal {
+	opacity: 0;
+	transform: translateY(24px) scale(0.98);
+	filter: blur(2px);
+	transition:
+		opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+		transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+		filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+	filter: blur(0);
+}
+
+/* ─── SECTION COMMON ────────────────────────────────────── */
+section {
+	padding: 100px 0;
+	position: relative;
+}
+.section-container {
+	max-width: var(--max-w);
+	margin: 0 auto;
+	padding: 0 var(--gutter);
+}
+.section-label {
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+	color: var(--muted);
+	margin-bottom: 40px;
+	letter-spacing: 0.02em;
+}
+
+/* ─── BUTTONS ───────────────────────────────────────────── */
+.btn {
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	font-weight: 500;
+	padding: 10px 20px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	border: 1px solid transparent;
+}
+.btn:active {
+	transform: scale(0.97);
+}
+.btn-primary {
+	background: var(--primary);
+	color: var(--bg);
+	border-color: var(--primary);
+}
+.btn-primary:hover {
+	background: transparent;
+	color: var(--primary);
+	box-shadow:
+		0 0 20px rgba(34, 211, 238, 0.15),
+		inset 0 0 20px rgba(34, 211, 238, 0.05);
+}
+.btn-ghost {
+	border-color: var(--border);
+	color: var(--text-2);
+}
+.btn-ghost:hover {
+	border-color: var(--text-2);
+	color: var(--text);
+	transform: translateY(-1px);
+}
+
+/* ─── UTILITY ───────────────────────────────────────────── */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────────── */
+@media (max-width: 768px) {
+	:root {
+		--gutter: 16px;
+	}
+	section {
+		padding: 72px 0;
+	}
+}
+
+/* ─── SCROLLBAR ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+	background: var(--border);
+	border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--border-hover);
+}
