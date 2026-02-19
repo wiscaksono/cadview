@@ -49,11 +49,13 @@
 </svelte:head>
 
 <Nav />
-<Hero />
-<Features />
-<Demo />
-<CodeExamples />
-<Entities />
-<Packages />
+<main>
+	<Hero />
+	<Features />
+	<Demo />
+	<CodeExamples />
+	<Entities />
+	<Packages />
+</main>
 <Footer />
 <BackToTop />
