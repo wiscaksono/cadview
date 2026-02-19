@@ -1,0 +1,54 @@
+{
+  "name": "@cadview/core",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Framework-agnostic CAD file viewer engine with DXF parser and Canvas 2D renderer",
+  "author": "Wisnu Wicaksono",
+  "keywords": ["cad", "dxf", "viewer", "canvas", "2d", "parser", "autocad", "drawing"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiscaksono/cadview.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/wiscaksono/cadview/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/wiscaksono/cadview/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": ["dist", "LICENSE", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/rbush": "^4.0.0",
+    "rbush": "^4.0.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0"
+  },
+  "sideEffects": false
+}

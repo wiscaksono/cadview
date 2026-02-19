@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.turbo/
+.svelte-kit/
+.vite/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+*.log
+coverage/
+specs/

@@ -1,0 +1,32 @@
+{
+  "name": "cadview",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A framework-agnostic CAD/DXF file viewer for the web",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiscaksono/cadview.git"
+  },
+  "homepage": "https://github.com/wiscaksono/cadview#readme",
+  "bugs": {
+    "url": "https://github.com/wiscaksono/cadview/issues"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rm -rf dist node_modules/.cache",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

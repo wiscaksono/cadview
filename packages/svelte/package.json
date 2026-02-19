@@ -1,0 +1,49 @@
+{
+  "name": "@cadview/svelte",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Svelte 5 wrapper for @cadview/core — CAD/DXF file viewer component",
+  "author": "Wisnu Wicaksono",
+  "keywords": ["cad", "dxf", "viewer", "svelte", "svelte5", "component", "canvas"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiscaksono/cadview.git",
+    "directory": "packages/svelte"
+  },
+  "homepage": "https://github.com/wiscaksono/cadview/tree/main/packages/svelte#readme",
+  "bugs": {
+    "url": "https://github.com/wiscaksono/cadview/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.js",
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "LICENSE", "README.md", "!dist/**/*.test.*"],
+  "scripts": {
+    "build": "svelte-package",
+    "dev": "svelte-package --watch",
+    "typecheck": "svelte-check"
+  },
+  "peerDependencies": {
+    "@cadview/core": "workspace:*",
+    "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "@cadview/core": "workspace:*",
+    "@sveltejs/package": "^2.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.7.0"
+  },
+  "sideEffects": false
+}
