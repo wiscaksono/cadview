@@ -2,6 +2,7 @@ import type { DxfDocument } from '../parser/types.js';
 import type { ViewTransform } from './camera.js';
 import type { Theme } from './theme.js';
 import type { RenderStats } from './debug-overlay.js';
+import type { BBox } from '../utils/bbox.js';
 import { THEMES } from './theme.js';
 import { applyTransform } from './camera.js';
 import { resolveEntityColor } from './resolve-color.js';
@@ -9,6 +10,9 @@ import { drawEntity } from './entities/index.js';
 
 // Re-export for convenience
 export { resolveEntityColor } from './resolve-color.js';
+
+/** Minimum screen-space extent (in pixels) for an entity to be rendered. */
+const MIN_SCREEN_EXTENT = 0.5;
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -55,6 +59,8 @@ export class CanvasRenderer {
     theme: Theme,
     visibleLayers: Set<string>,
     selectedEntityIndex: number,
+    visibleEntityIndices?: Set<number>,
+    entityBBoxes?: (BBox | null)[],
   ): RenderStats {
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
@@ -95,6 +101,25 @@ export class CanvasRenderer {
       if (!visibleLayers.has(entity.layer)) {
         stats.entitiesSkipped++;
         continue;
+      }
+
+      // Viewport frustum culling: skip entities not in the visible set
+      if (visibleEntityIndices && !visibleEntityIndices.has(i)) {
+        stats.entitiesSkipped++;
+        continue;
+      }
+
+      // Sub-pixel culling: skip entities smaller than MIN_SCREEN_EXTENT pixels
+      if (entityBBoxes) {
+        const bbox = entityBBoxes[i];
+        if (bbox) {
+          const screenW = (bbox.maxX - bbox.minX) * vt.scale;
+          const screenH = (bbox.maxY - bbox.minY) * vt.scale;
+          if (Math.max(screenW, screenH) < MIN_SCREEN_EXTENT) {
+            stats.entitiesSkipped++;
+            continue;
+          }
+        }
       }
 
       // Resolve color

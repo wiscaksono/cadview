@@ -1,6 +1,7 @@
 import RBush from 'rbush';
-import type { DxfEntity, Point3D } from '../parser/types.js';
-import { computeEntityBBox } from '../utils/bbox.js';
+import type { DxfEntity, DxfDocument, Point3D } from '../parser/types.js';
+import type { BBox } from '../utils/bbox.js';
+import { computeEntityBBox, computeEntityBBoxWithDoc } from '../utils/bbox.js';
 
 export interface SpatialItem {
   minX: number;
@@ -15,12 +16,26 @@ const HIT_TOLERANCE_PX = 5;
 export class SpatialIndex {
   private tree: RBush<SpatialItem> = new RBush();
   private items: SpatialItem[] = [];
+  /** Pre-computed bboxes parallel to the entity array (null if no bbox). */
+  private entityBBoxes: (BBox | null)[] = [];
 
-  build(entities: DxfEntity[]): void {
+  /**
+   * Build the spatial index from entities.
+   * When `doc` is provided, INSERT entities get proper transformed bounding boxes
+   * (resolved from block contents) instead of degenerate zero-size points.
+   */
+  build(entities: DxfEntity[], doc?: DxfDocument): void {
     this.items = [];
+    this.entityBBoxes = new Array(entities.length).fill(null);
+
+    const cache = doc ? new Map<string, BBox | null>() : undefined;
+
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i]!;
-      const bbox = computeEntityBBox(entity);
+      const bbox = doc && cache
+        ? computeEntityBBoxWithDoc(entity, doc, cache)
+        : computeEntityBBox(entity);
+      this.entityBBoxes[i] = bbox;
       if (!bbox) continue;
       this.items.push({
         ...bbox,
@@ -35,9 +50,20 @@ export class SpatialIndex {
     return this.tree.search({ minX, minY, maxX, maxY });
   }
 
+  /** Get pre-computed bbox for an entity by index. */
+  getEntityBBox(index: number): BBox | null {
+    return this.entityBBoxes[index] ?? null;
+  }
+
+  /** Get the full pre-computed bbox array (parallel to entity array). */
+  getEntityBBoxes(): (BBox | null)[] {
+    return this.entityBBoxes;
+  }
+
   clear(): void {
     this.tree.clear();
     this.items = [];
+    this.entityBBoxes = [];
   }
 }
 

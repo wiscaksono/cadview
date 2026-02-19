@@ -2,10 +2,14 @@ import type { DxfInsertEntity, DxfDocument, DxfEntity } from '../../parser/types
 import type { ViewTransform } from '../camera.js';
 import type { Theme } from '../theme.js';
 import type { RenderStats } from '../debug-overlay.js';
+import { computeEntityBBox } from '../../utils/bbox.js';
 import { resolveEntityColor } from '../resolve-color.js';
 import { drawEntity } from './draw-entity.js';
 
 const MAX_INSERT_DEPTH = 100;
+
+/** Minimum screen-space extent (in pixels) for a block sub-entity to be rendered. */
+const MIN_BLOCK_ENTITY_EXTENT = 0.5;
 
 export function drawInsert(
   ctx: CanvasRenderingContext2D,
@@ -52,6 +56,20 @@ export function drawInsert(
 
       // Render block entities
       for (const blockEntity of block.entities) {
+        // Sub-pixel culling: skip block entities that are too small to see.
+        // adjustedPixelSize is the world-space size of 1 screen pixel in block-local space.
+        // Only cull if extent is non-zero (zero-extent means INSERT without doc or POINT —
+        // let those through so nested blocks expand normally and points render as dots).
+        if (blockEntity.type !== 'INSERT') {
+          const beBBox = computeEntityBBox(blockEntity);
+          if (beBBox) {
+            const extent = Math.max(beBBox.maxX - beBBox.minX, beBBox.maxY - beBBox.minY);
+            if (extent > 0 && extent / adjustedPixelSize < MIN_BLOCK_ENTITY_EXTENT) {
+              continue;
+            }
+          }
+        }
+
         const color = resolveEntityColor(blockEntity, doc.layers, theme);
         ctx.strokeStyle = color;
         ctx.fillStyle = color;

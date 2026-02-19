@@ -296,7 +296,7 @@ export class CadViewer {
 
     // Build spatial index (timed for debug stats)
     const t0 = performance.now();
-    this.spatialIndex.build(this.doc.entities);
+    this.spatialIndex.build(this.doc.entities, this.doc);
     this.spatialIndexBuildTime = performance.now() - t0;
 
     // Reset selection and measurement
@@ -498,13 +498,26 @@ export class CadViewer {
       return;
     }
 
+    // Viewport frustum culling: query spatial index for visible entities
+    const vt = this.camera.getTransform();
+    const w = this.renderer.getWidth();
+    const h = this.renderer.getHeight();
+    const vb = this.computeViewportBounds(vt, w, h);
+    const hits = this.spatialIndex.search(vb.minX, vb.minY, vb.maxX, vb.maxY);
+    const visibleIndices = new Set<number>();
+    for (let i = 0; i < hits.length; i++) {
+      visibleIndices.add(hits[i]!.entityIndex);
+    }
+
     const renderStart = performance.now();
     const stats = this.renderer.render(
       this.doc,
-      this.camera.getTransform(),
+      vt,
       this.options.theme,
       this.layerManager.getVisibleLayerNames(),
       this.selectedEntityIndex,
+      visibleIndices,
+      this.spatialIndex.getEntityBBoxes(),
     );
     this.lastFrameTime = performance.now() - renderStart;
     this.lastRenderStats = stats;
