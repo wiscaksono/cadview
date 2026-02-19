@@ -96,6 +96,7 @@ export class CadViewer {
   private spatialIndexBuildTime: number = 0;
   private loadedFileName: string | null = null;
   private loadedFileSize: number = 0;
+  private debugRafId: number = 0;
 
   constructor(canvas: HTMLCanvasElement, options?: CadViewerOptions) {
     this.canvas = canvas;
@@ -141,6 +142,11 @@ export class CadViewer {
 
     // Initial render (empty canvas with background)
     this.requestRender();
+
+    // Start continuous render loop if debug is enabled
+    if (this.debugEnabled) {
+      this.startDebugLoop();
+    }
   }
 
   // === Loading ===
@@ -455,6 +461,7 @@ export class CadViewer {
 
   destroy(): void {
     this.destroyed = true;
+    this.stopDebugLoop();
     this.inputHandler.destroy();
     this.resizeObserver.disconnect();
     this.renderer.destroy();
@@ -468,7 +475,14 @@ export class CadViewer {
 
   /** @internal */
   requestRender(): void {
-    if (this.renderPending || this.destroyed) return;
+    if (this.destroyed) return;
+    if (this.debugRafId) {
+      // Debug loop handles continuous rendering, but render immediately
+      // for state changes (file load, theme change, layer toggle, etc.)
+      this.doRender();
+      return;
+    }
+    if (this.renderPending) return;
     this.renderPending = true;
     requestAnimationFrame(() => {
       this.renderPending = false;
@@ -544,7 +558,32 @@ export class CadViewer {
       this.debugEnabled = true;
       this.debugOptions = resolveDebugOptions(debug);
     }
-    this.requestRender();
+    if (this.debugEnabled) {
+      this.startDebugLoop();
+    } else {
+      this.stopDebugLoop();
+      this.requestRender(); // one final render to clear the overlay
+    }
+  }
+
+  private startDebugLoop(): void {
+    if (this.debugRafId) return; // already running
+    const loop = () => {
+      if (!this.debugEnabled || this.destroyed) {
+        this.debugRafId = 0;
+        return;
+      }
+      this.doRender();
+      this.debugRafId = requestAnimationFrame(loop);
+    };
+    this.debugRafId = requestAnimationFrame(loop);
+  }
+
+  private stopDebugLoop(): void {
+    if (this.debugRafId) {
+      cancelAnimationFrame(this.debugRafId);
+      this.debugRafId = 0;
+    }
   }
 
   /**

@@ -90,18 +90,30 @@ function setupGlobals() {
     return instance;
   }) as any;
 
-  // Mock requestAnimationFrame
+  // Mock requestAnimationFrame with depth tracking to prevent infinite
+  // recursion from the debug mode continuous render loop.
+  // Depth 0: execute synchronously (normal requestRender behavior).
+  // Depth > 0: queue only (breaks debug loop recursion in tests).
+  let rafDepth = 0;
+  let nextRafId = 1;
   globalThis.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
-    // Execute synchronously for test predictability
-    cb(0);
-    return 0;
+    const id = nextRafId++;
+    if (rafDepth === 0) {
+      rafDepth++;
+      cb(0);
+      rafDepth--;
+    }
+    return id;
   }) as any;
+
+  globalThis.cancelAnimationFrame = vi.fn() as any;
 }
 
 function teardownGlobals() {
   resizeObserverInstances = [];
   delete (globalThis as any).ResizeObserver;
   delete (globalThis as any).requestAnimationFrame;
+  delete (globalThis as any).cancelAnimationFrame;
   // Don't delete window entirely — just clean up our additions
 }
 
