@@ -867,6 +867,55 @@ describe('CadViewer', () => {
       viewer.destroy();
     });
 
+    it('deduplicates FPS counter for renders within 3ms of each other', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      // After loadString, one render has occurred. Get baseline FPS.
+      const statsBefore = viewer.getDebugStats();
+      expect(statsBefore).not.toBeNull();
+      const fpsBefore = statsBefore!.fps;
+
+      // Simulate rapid back-to-back renders (< 3ms apart) like mouse events
+      // firing during a debug rAF loop. We mock performance.now to return
+      // timestamps only 1ms apart.
+      let fakeTime = 1000;
+      const originalNow = performance.now;
+      performance.now = () => fakeTime;
+
+      // First render at t=1000 — should count as a new frame
+      viewer.requestRender();
+      const statsAfter1 = viewer.getDebugStats();
+      const fps1 = statsAfter1!.fps;
+
+      // Second render at t=1001 (only 1ms later) — should NOT count
+      fakeTime = 1001;
+      viewer.requestRender();
+      const statsAfter2 = viewer.getDebugStats();
+      const fps2 = statsAfter2!.fps;
+
+      // Third render at t=1002 (only 1ms later) — should NOT count
+      fakeTime = 1002;
+      viewer.requestRender();
+      const statsAfter3 = viewer.getDebugStats();
+      const fps3 = statsAfter3!.fps;
+
+      // fps2 and fps3 should be the same as fps1 (no extra frames counted)
+      expect(fps2).toBe(fps1);
+      expect(fps3).toBe(fps1);
+
+      // Now render at t=1005 (>= 3ms gap) — should count as a new frame
+      fakeTime = 1005;
+      viewer.requestRender();
+      const statsAfter4 = viewer.getDebugStats();
+      const fps4 = statsAfter4!.fps;
+      expect(fps4).toBe(fps1 + 1);
+
+      performance.now = originalNow;
+      viewer.destroy();
+    });
+
     it('loadDocument sets parseTime to 0', () => {
       const canvas = createMockCanvas();
       const viewer = new CadViewer(canvas, { debug: true });

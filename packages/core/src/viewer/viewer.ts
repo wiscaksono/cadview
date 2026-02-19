@@ -91,6 +91,7 @@ export class CadViewer {
   private lastRenderStats: RenderStats | null = null;
   private lastDebugStats: DebugStats | null = null;
   private frameTimestamps: number[] = [];
+  private lastDoRenderTime: number = 0;
   private lastFrameTime: number = 0;
   private parseTime: number = 0;
   private spatialIndexBuildTime: number = 0;
@@ -508,9 +509,15 @@ export class CadViewer {
     this.lastFrameTime = performance.now() - renderStart;
     this.lastRenderStats = stats;
 
-    // FPS tracking — count frames within last 1 second
+    // FPS tracking — deduplicate renders within same display frame.
+    // Only count a new frame if >=3ms since last render. This threshold is
+    // below the frame interval of 240hz (4.2ms) but above the gap between
+    // double-renders caused by mouse events firing during the debug rAF loop.
     const now = performance.now();
-    this.frameTimestamps.push(now);
+    if (now - this.lastDoRenderTime >= 3) {
+      this.frameTimestamps.push(now);
+    }
+    this.lastDoRenderTime = now;
     while (this.frameTimestamps.length > 0 && this.frameTimestamps[0]! < now - 1000) {
       this.frameTimestamps.shift();
     }
