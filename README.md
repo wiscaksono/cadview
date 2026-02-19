@@ -1,6 +1,6 @@
 # @cadview
 
-A framework-agnostic CAD/DXF file viewer for the web.
+A framework-agnostic CAD/DXF/DWG file viewer for the web.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6.svg)](https://www.typescriptlang.org/)
@@ -16,6 +16,7 @@ A framework-agnostic CAD/DXF file viewer for the web.
 - **Layer management** with visibility toggle and color overrides
 - **ACI color table** (256 colors) with theme-aware color resolution
 - **Block INSERT rendering** with nested block and MINSERT grid support
+- **DWG file support** via `@cadview/dwg` — LibreDWG compiled to WebAssembly, zero-config CDN loading
 - **Framework wrappers** for React, Svelte 5, and Vue 3
 - **Zero framework dependencies** in the core package
 - **TypeScript-first** with full type definitions
@@ -28,6 +29,7 @@ A framework-agnostic CAD/DXF file viewer for the web.
 | [`@cadview/react`](packages/react) | React component and hook | [![npm](https://img.shields.io/npm/v/@cadview/react.svg)](https://www.npmjs.com/package/@cadview/react) |
 | [`@cadview/svelte`](packages/svelte) | Svelte 5 component | [![npm](https://img.shields.io/npm/v/@cadview/svelte.svg)](https://www.npmjs.com/package/@cadview/svelte) |
 | [`@cadview/vue`](packages/vue) | Vue 3 component and composable | [![npm](https://img.shields.io/npm/v/@cadview/vue.svg)](https://www.npmjs.com/package/@cadview/vue) |
+| [`@cadview/dwg`](packages/dwg) | DWG file support via LibreDWG WASM (GPL-3.0) | [![npm](https://img.shields.io/npm/v/@cadview/dwg.svg)](https://www.npmjs.com/package/@cadview/dwg) |
 
 ## Quick Start
 
@@ -35,15 +37,20 @@ A framework-agnostic CAD/DXF file viewer for the web.
 
 ```bash
 npm install @cadview/core
+npm install @cadview/dwg  # optional — adds DWG file support
 ```
 
 ```ts
 import { CadViewer } from '@cadview/core';
+import { dwgConverter } from '@cadview/dwg'; // optional
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-const viewer = new CadViewer(canvas, { theme: 'dark' });
+const viewer = new CadViewer(canvas, {
+  theme: 'dark',
+  formatConverters: [dwgConverter], // enables .dwg file loading
+});
 
-// Load from File input
+// Load from File input (.dxf or .dwg)
 const input = document.querySelector('input[type="file"]')!;
 input.addEventListener('change', async () => {
   const file = (input as HTMLInputElement).files?.[0];
@@ -54,7 +61,7 @@ input.addEventListener('change', async () => {
 // Or load from URL
 const response = await fetch('/drawing.dxf');
 const buffer = await response.arrayBuffer();
-viewer.loadArrayBuffer(buffer);
+await viewer.loadBuffer(buffer);
 viewer.fitToView();
 
 // Interact
@@ -71,12 +78,13 @@ viewer.destroy();
 ### React
 
 ```bash
-npm install @cadview/core @cadview/react
+npm install @cadview/core @cadview/react @cadview/dwg
 ```
 
 ```tsx
 import { useState } from 'react';
 import { CadViewer } from '@cadview/react';
+import { dwgConverter } from '@cadview/dwg';
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
@@ -85,13 +93,14 @@ function App() {
     <div style={{ width: '100%', height: '100vh' }}>
       <input
         type="file"
-        accept=".dxf"
+        accept=".dxf,.dwg"
         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
       />
       <CadViewer
         file={file}
         theme="dark"
         tool="pan"
+        formatConverters={[dwgConverter]}
         onSelect={(e) => console.log('Selected:', e.entity.type)}
         onMeasure={(e) => console.log('Distance:', e.distance)}
       />
@@ -103,23 +112,25 @@ function App() {
 ### Svelte 5
 
 ```bash
-npm install @cadview/core @cadview/svelte
+npm install @cadview/core @cadview/svelte @cadview/dwg
 ```
 
 ```svelte
 <script>
   import { CadViewer } from '@cadview/svelte';
+  import { dwgConverter } from '@cadview/dwg';
 
   let file = $state(null);
 </script>
 
-<input type="file" accept=".dxf" onchange={(e) => file = e.target.files?.[0]} />
+<input type="file" accept=".dxf,.dwg" onchange={(e) => file = e.target.files?.[0]} />
 
 <div style="width: 100%; height: 100vh;">
   <CadViewer
     {file}
     theme="dark"
     tool="pan"
+    formatConverters={[dwgConverter]}
     onselect={(e) => console.log('Selected:', e.entity.type)}
     onmeasure={(e) => console.log('Distance:', e.distance)}
   />
@@ -129,16 +140,17 @@ npm install @cadview/core @cadview/svelte
 ### Vue 3
 
 ```bash
-npm install @cadview/core @cadview/vue
+npm install @cadview/core @cadview/vue @cadview/dwg
 ```
 
 ```vue
 <template>
-  <input type="file" accept=".dxf" @change="onFileChange" />
+  <input type="file" accept=".dxf,.dwg" @change="onFileChange" />
   <CadViewer
     :file="file"
     theme="dark"
     tool="pan"
+    :formatConverters="[dwgConverter]"
     @select="(e) => console.log('Selected:', e.entity.type)"
     @measure="(e) => console.log('Distance:', e.distance)"
   />
@@ -147,6 +159,7 @@ npm install @cadview/core @cadview/vue
 <script setup>
 import { ref } from 'vue';
 import { CadViewer } from '@cadview/vue';
+import { dwgConverter } from '@cadview/dwg';
 
 const file = ref(null);
 
@@ -206,15 +219,18 @@ pnpm dev
 ```
 cadview/
 ├── packages/
-│   ├── core/        # @cadview/core — parser, renderer, viewer
-│   ├── react/       # @cadview/react — React wrapper
-│   ├── svelte/      # @cadview/svelte — Svelte 5 wrapper
-│   └── vue/         # @cadview/vue — Vue 3 wrapper
+│   ├── core/        # @cadview/core — parser, renderer, viewer (MIT)
+│   ├── react/       # @cadview/react — React wrapper (MIT)
+│   ├── svelte/      # @cadview/svelte — Svelte 5 wrapper (MIT)
+│   ├── vue/         # @cadview/vue — Vue 3 wrapper (MIT)
+│   └── dwg/         # @cadview/dwg — DWG support via LibreDWG WASM (GPL-3.0)
 ├── apps/
-│   └── demo/        # Demo app (Vite)
-└── specs/           # Design specifications
+│   └── homepage/    # Homepage & live demo (SvelteKit)
+└── docs/            # Design documents & plans
 ```
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — core, react, svelte, and vue packages.
+
+[GPL-3.0](packages/dwg/LICENSE) — `@cadview/dwg` package (due to LibreDWG dependency). This package is fully optional — the core viewer works without it.
