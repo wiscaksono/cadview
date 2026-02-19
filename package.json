@@ -8,7 +8,7 @@
     "type": "git",
     "url": "git+https://github.com/wiscaksono/cadview.git"
   },
-  "homepage": "https://github.com/wiscaksono/cadview#readme",
+  "homepage": "cadview.wiscaksono.com",
   "bugs": {
     "url": "https://github.com/wiscaksono/cadview/issues"
   },
@@ -23,7 +23,9 @@
     "typescript": "^5.7.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   },
   "engines": {
     "node": ">=18.0.0",
