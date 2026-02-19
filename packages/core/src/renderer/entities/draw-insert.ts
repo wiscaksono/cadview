@@ -1,6 +1,7 @@
 import type { DxfInsertEntity, DxfDocument, DxfEntity } from '../../parser/types.js';
 import type { ViewTransform } from '../camera.js';
 import type { Theme } from '../theme.js';
+import type { RenderStats } from '../debug-overlay.js';
 import { resolveEntityColor } from '../resolve-color.js';
 import { drawEntity } from './draw-entity.js';
 
@@ -14,6 +15,7 @@ export function drawInsert(
   theme: Theme,
   pixelSize: number,
   depth: number = 0,
+  stats?: RenderStats,
 ): void {
   if (depth > MAX_INSERT_DEPTH) return;
 
@@ -56,9 +58,9 @@ export function drawInsert(
         ctx.lineWidth = adjustedPixelSize;
 
         if (blockEntity.type === 'INSERT') {
-          drawInsert(ctx, blockEntity as DxfInsertEntity, doc, vt, theme, adjustedPixelSize, depth + 1);
+          drawInsert(ctx, blockEntity as DxfInsertEntity, doc, vt, theme, adjustedPixelSize, depth + 1, stats);
         } else {
-          drawEntity(ctx, blockEntity as DxfEntity, doc, vt, theme, adjustedPixelSize);
+          drawEntity(ctx, blockEntity as DxfEntity, doc, vt, theme, adjustedPixelSize, stats);
         }
       }
 

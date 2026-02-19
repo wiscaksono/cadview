@@ -225,6 +225,7 @@
 					<CadViewerComponent
 						bind:this={cadViewerRef}
 						{file}
+						debug
 						theme={currentTheme}
 						tool={activeTool}
 						{formatConverters}

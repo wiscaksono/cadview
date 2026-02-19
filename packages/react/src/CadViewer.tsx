@@ -9,6 +9,7 @@ import {
   CadViewer as CoreCadViewer,
   type CadViewerOptions,
   type FormatConverter,
+  type DebugOptions,
   type DxfLayer,
   type SelectEvent,
   type MeasureEvent,
@@ -21,9 +22,11 @@ export interface CadViewerProps {
   file?: File | ArrayBuffer | string | null;
   theme?: Theme;
   tool?: Tool;
+  /** Enable debug overlay. Pass `true` for defaults, or a `DebugOptions` object. */
+  debug?: boolean | DebugOptions;
   className?: string;
   style?: CSSProperties;
-  options?: Omit<CadViewerOptions, 'theme' | 'initialTool'>;
+  options?: Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug'>;
   /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
   formatConverters?: FormatConverter[];
   onSelect?: (event: SelectEvent) => void;
@@ -45,6 +48,7 @@ export const CadViewer = forwardRef<CadViewerRef, CadViewerProps>(
       file,
       theme = 'dark',
       tool = 'pan',
+      debug,
       className,
       style,
       options,
@@ -64,6 +68,7 @@ export const CadViewer = forwardRef<CadViewerRef, CadViewerProps>(
       const viewer = new CoreCadViewer(canvasRef.current, {
         theme,
         initialTool: tool,
+        debug,
         formatConverters,
         ...options,
       });
@@ -82,6 +87,12 @@ export const CadViewer = forwardRef<CadViewerRef, CadViewerProps>(
     useEffect(() => {
       viewerRef.current?.setTool(tool);
     }, [tool]);
+
+    useEffect(() => {
+      if (debug !== undefined) {
+        viewerRef.current?.setDebug(debug);
+      }
+    }, [debug]);
 
     useEffect(() => {
       const viewer = viewerRef.current;

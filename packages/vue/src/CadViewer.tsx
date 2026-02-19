@@ -11,6 +11,7 @@ import {
   CadViewer as CoreCadViewer,
   type CadViewerOptions,
   type FormatConverter,
+  type DebugOptions,
   type DxfLayer,
   type SelectEvent,
   type MeasureEvent,
@@ -35,8 +36,12 @@ export const CadViewer = defineComponent({
       type: String as PropType<Tool>,
       default: 'pan',
     },
+    debug: {
+      type: [Boolean, Object] as PropType<boolean | DebugOptions>,
+      default: undefined,
+    },
     options: {
-      type: Object as PropType<Omit<CadViewerOptions, 'theme' | 'initialTool'>>,
+      type: Object as PropType<Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug'>>,
       default: () => ({}),
     },
     formatConverters: {
@@ -57,6 +62,7 @@ export const CadViewer = defineComponent({
       const viewer = new CoreCadViewer(canvasRef.value, {
         theme: props.theme,
         initialTool: props.tool,
+        debug: props.debug,
         formatConverters: props.formatConverters,
         ...props.options,
       });
@@ -83,6 +89,15 @@ export const CadViewer = defineComponent({
       () => props.tool,
       (newTool) => {
         viewerRef.value?.setTool(newTool);
+      },
+    );
+
+    watch(
+      () => props.debug,
+      (newDebug) => {
+        if (newDebug !== undefined) {
+          viewerRef.value?.setDebug(newDebug);
+        }
       },
     );
 

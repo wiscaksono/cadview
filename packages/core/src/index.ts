@@ -36,11 +36,12 @@ export type {
 export { aciToHex, aciToDisplayColor, trueColorToHex } from './parser/colors.js';
 
 // Renderer
-export type { ViewTransform, Theme, ThemeConfig } from './renderer/index.js';
+export type { ViewTransform, Theme, ThemeConfig, RenderStats } from './renderer/index.js';
 export { CanvasRenderer, resolveEntityColor } from './renderer/index.js';
 export { Camera, fitToView, worldToScreen, screenToWorld, zoomAtPoint, applyTransform } from './renderer/index.js';
 export { drawEntity } from './renderer/index.js';
 export { THEMES } from './renderer/index.js';
+export { renderDebugOverlay } from './renderer/index.js';
 
 // Viewer
 export { CadViewer } from './viewer/index.js';
@@ -58,6 +59,8 @@ export type {
   SnapType,
   SnapResult,
   MeasureState,
+  DebugOptions,
+  DebugStats,
 } from './viewer/index.js';
 
 // Utils

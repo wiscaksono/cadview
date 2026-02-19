@@ -1,6 +1,7 @@
 import type { DxfDimensionEntity, DxfDocument, DxfEntity } from '../../parser/types.js';
 import type { ViewTransform } from '../camera.js';
 import type { Theme } from '../theme.js';
+import type { RenderStats } from '../debug-overlay.js';
 import { resolveEntityColor } from '../resolve-color.js';
 import { drawEntity } from './draw-entity.js';
 
@@ -11,6 +12,7 @@ export function drawDimension(
   vt: ViewTransform,
   theme: Theme,
   pixelSize: number,
+  stats?: RenderStats,
 ): void {
   // Prefer rendering from the geometry block
   if (entity.blockName) {
@@ -21,7 +23,7 @@ export function drawDimension(
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
         ctx.lineWidth = pixelSize;
-        drawEntity(ctx, blockEntity as DxfEntity, doc, vt, theme, pixelSize);
+        drawEntity(ctx, blockEntity as DxfEntity, doc, vt, theme, pixelSize, stats);
       }
       return;
     }
