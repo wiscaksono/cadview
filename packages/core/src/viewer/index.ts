@@ -1,5 +1,5 @@
 export { CadViewer } from './viewer.js';
-export type { CadViewerOptions, Tool, FormatConverter } from './viewer.js';
+export type { CadViewerOptions, Tool, FormatConverter, DebugOptions, DebugStats, RenderStats } from './viewer.js';
 export type { SelectEvent, MeasureEvent, CadViewerEventMap } from './events.js';
 export { EventEmitter } from './events.js';
 export { LayerManager } from './layers.js';

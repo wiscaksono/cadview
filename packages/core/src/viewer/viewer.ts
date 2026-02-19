@@ -2,6 +2,7 @@ import type { DxfDocument, DxfEntity, DxfLayer } from '../parser/types.js';
 import type { ViewTransform } from '../renderer/camera.js';
 import type { Theme } from '../renderer/theme.js';
 import type { CadViewerEventMap } from './events.js';
+import type { RenderStats, DebugStats } from '../renderer/debug-overlay.js';
 import { parseDxf } from '../parser/index.js';
 import { CanvasRenderer } from '../renderer/canvas-renderer.js';
 import { Camera, fitToView, screenToWorld } from '../renderer/camera.js';
@@ -11,6 +12,8 @@ import { InputHandler } from './input-handler.js';
 import { SpatialIndex, hitTest } from './selection.js';
 import { MeasureTool, findSnaps, renderMeasureOverlay } from './measure.js';
 import { computeEntitiesBounds } from '../utils/bbox.js';
+import { renderDebugOverlay, resolveDebugOptions } from '../renderer/debug-overlay.js';
+export type { DebugOptions, DebugStats, RenderStats } from '../renderer/debug-overlay.js';
 
 export type Tool = 'pan' | 'select' | 'measure';
 
@@ -44,6 +47,11 @@ export interface CadViewerOptions {
   initialTool?: Tool;
   /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
   formatConverters?: FormatConverter[];
+  /**
+   * Enable a debug overlay showing FPS, render stats, document info, timing, and camera data.
+   * Pass `true` for defaults, or an object for granular control.
+   */
+  debug?: boolean | import('../renderer/debug-overlay.js').DebugOptions;
 }
 
 interface ResolvedOptions {
@@ -77,6 +85,18 @@ export class CadViewer {
   private mouseScreenX: number = 0;
   private mouseScreenY: number = 0;
 
+  // Debug mode state
+  private debugEnabled: boolean = false;
+  private debugOptions: Required<import('../renderer/debug-overlay.js').DebugOptions>;
+  private lastRenderStats: RenderStats | null = null;
+  private lastDebugStats: DebugStats | null = null;
+  private frameTimestamps: number[] = [];
+  private lastFrameTime: number = 0;
+  private parseTime: number = 0;
+  private spatialIndexBuildTime: number = 0;
+  private loadedFileName: string | null = null;
+  private loadedFileSize: number = 0;
+
   constructor(canvas: HTMLCanvasElement, options?: CadViewerOptions) {
     this.canvas = canvas;
     this.options = {
@@ -90,6 +110,17 @@ export class CadViewer {
     };
 
     this.formatConverters = options?.formatConverters ?? [];
+
+    // Resolve debug options
+    if (options?.debug) {
+      this.debugEnabled = true;
+      this.debugOptions = resolveDebugOptions(
+        typeof options.debug === 'boolean' ? undefined : options.debug,
+      );
+    } else {
+      this.debugOptions = resolveDebugOptions();
+    }
+
     this.renderer = new CanvasRenderer(canvas);
     this.camera = new Camera(this.options);
     this.layerManager = new LayerManager();
@@ -153,6 +184,8 @@ export class CadViewer {
   async loadFile(file: File): Promise<void> {
     this.guardDestroyed();
     const generation = ++this.loadGeneration;
+    this.loadedFileName = file.name;
+    this.loadedFileSize = file.size;
 
     const buffer = await file.arrayBuffer();
     if (this.destroyed || generation !== this.loadGeneration) return;
@@ -160,7 +193,9 @@ export class CadViewer {
     const dxfString = await this.runConverters(buffer);
     if (this.destroyed || generation !== this.loadGeneration) return;
 
+    const t0 = performance.now();
     this.doc = dxfString != null ? parseDxf(dxfString) : parseDxf(buffer);
+    this.parseTime = performance.now() - t0;
     this.onDocumentLoaded();
   }
 
@@ -172,11 +207,15 @@ export class CadViewer {
   async loadBuffer(buffer: ArrayBuffer): Promise<void> {
     this.guardDestroyed();
     const generation = ++this.loadGeneration;
+    this.loadedFileName = null;
+    this.loadedFileSize = buffer.byteLength;
 
     const dxfString = await this.runConverters(buffer);
     if (this.destroyed || generation !== this.loadGeneration) return;
 
+    const t0 = performance.now();
     this.doc = dxfString != null ? parseDxf(dxfString) : parseDxf(buffer);
+    this.parseTime = performance.now() - t0;
     this.onDocumentLoaded();
   }
 
@@ -187,6 +226,9 @@ export class CadViewer {
   loadDocument(doc: DxfDocument): void {
     this.guardDestroyed();
     ++this.loadGeneration;
+    this.loadedFileName = null;
+    this.loadedFileSize = 0;
+    this.parseTime = 0;
 
     if (!doc || !Array.isArray(doc.entities) || !(doc.layers instanceof Map)) {
       throw new Error('CadViewer: invalid DxfDocument — expected entities array and layers Map.');
@@ -202,7 +244,11 @@ export class CadViewer {
   loadString(dxf: string): void {
     this.guardDestroyed();
     ++this.loadGeneration;
+    this.loadedFileName = null;
+    this.loadedFileSize = dxf.length;
+    const t0 = performance.now();
     this.doc = parseDxf(dxf);
+    this.parseTime = performance.now() - t0;
     this.onDocumentLoaded();
   }
 
@@ -213,7 +259,11 @@ export class CadViewer {
   loadArrayBuffer(buffer: ArrayBuffer): void {
     this.guardDestroyed();
     ++this.loadGeneration;
+    this.loadedFileName = null;
+    this.loadedFileSize = buffer.byteLength;
+    const t0 = performance.now();
     this.doc = parseDxf(buffer);
+    this.parseTime = performance.now() - t0;
     this.onDocumentLoaded();
   }
 
@@ -237,8 +287,10 @@ export class CadViewer {
     // Initialize layers
     this.layerManager.setLayers(this.doc.layers);
 
-    // Build spatial index
+    // Build spatial index (timed for debug stats)
+    const t0 = performance.now();
     this.spatialIndex.build(this.doc.entities);
+    this.spatialIndexBuildTime = performance.now() - t0;
 
     // Reset selection and measurement
     this.selectedEntityIndex = -1;
@@ -430,13 +482,24 @@ export class CadViewer {
       this.renderer.renderEmpty(this.options.theme);
       return;
     }
-    this.renderer.render(
+
+    const renderStart = performance.now();
+    const stats = this.renderer.render(
       this.doc,
       this.camera.getTransform(),
       this.options.theme,
       this.layerManager.getVisibleLayerNames(),
       this.selectedEntityIndex,
     );
+    this.lastFrameTime = performance.now() - renderStart;
+    this.lastRenderStats = stats;
+
+    // FPS tracking — count frames within last 1 second
+    const now = performance.now();
+    this.frameTimestamps.push(now);
+    while (this.frameTimestamps.length > 0 && this.frameTimestamps[0]! < now - 1000) {
+      this.frameTimestamps.shift();
+    }
 
     // Render measurement overlay on top
     if (this.currentTool === 'measure' && this.measureTool.state.phase !== 'idle') {
@@ -450,7 +513,94 @@ export class CadViewer {
         this.options.theme,
       );
     }
+
+    // Render debug overlay on top of everything
+    if (this.debugEnabled) {
+      const ctx = this.renderer.getContext();
+      const debugStats = this.buildDebugStats();
+      this.lastDebugStats = debugStats;
+      renderDebugOverlay(
+        ctx,
+        debugStats,
+        this.options.theme,
+        this.debugOptions,
+        this.renderer.getWidth(),
+        this.renderer.getHeight(),
+      );
+    }
   }
+
+  // === Debug Mode ===
+
+  /**
+   * Enable or disable the debug overlay.
+   * Pass `true` for defaults, `false` to disable, or an object for granular control.
+   */
+  setDebug(debug: boolean | import('../renderer/debug-overlay.js').DebugOptions): void {
+    this.guardDestroyed();
+    if (typeof debug === 'boolean') {
+      this.debugEnabled = debug;
+    } else {
+      this.debugEnabled = true;
+      this.debugOptions = resolveDebugOptions(debug);
+    }
+    this.requestRender();
+  }
+
+  /**
+   * Get the latest debug stats snapshot, or null if debug mode is off.
+   */
+  getDebugStats(): DebugStats | null {
+    return this.debugEnabled ? this.lastDebugStats : null;
+  }
+
+  private buildDebugStats(): DebugStats {
+    const vt = this.camera.getTransform();
+    const w = this.renderer.getWidth();
+    const h = this.renderer.getHeight();
+    const bounds = this.computeViewportBounds(vt, w, h);
+
+    return {
+      fps: this.frameTimestamps.length,
+      frameTime: this.lastFrameTime,
+      renderStats: this.lastRenderStats ?? {
+        entitiesDrawn: 0,
+        entitiesSkipped: 0,
+        drawCalls: 0,
+        byType: {},
+      },
+      entityCount: this.doc?.entities.length ?? 0,
+      layerCount: this.doc?.layers.size ?? 0,
+      visibleLayerCount: this.layerManager.getVisibleLayerNames().size,
+      blockCount: this.doc?.blocks.size ?? 0,
+      parseTime: this.parseTime,
+      spatialIndexBuildTime: this.spatialIndexBuildTime,
+      totalLoadTime: this.parseTime + this.spatialIndexBuildTime,
+      zoom: vt.scale,
+      pixelSize: vt.scale > 0 ? 1 / vt.scale : 0,
+      viewportBounds: bounds,
+      fileName: this.loadedFileName,
+      fileSize: this.loadedFileSize,
+      dxfVersion: this.doc?.header.acadVersion ?? null,
+    };
+  }
+
+  private computeViewportBounds(
+    vt: ViewTransform,
+    w: number,
+    h: number,
+  ): { minX: number; minY: number; maxX: number; maxY: number } {
+    const [x1, y1] = screenToWorld(vt, 0, h);
+    const [x2, y2] = screenToWorld(vt, w, 0);
+    return {
+      minX: Math.min(x1, x2),
+      minY: Math.min(y1, y2),
+      maxX: Math.max(x1, x2),
+      maxY: Math.max(y1, y2),
+    };
+  }
+
+  // === Internal (called by InputHandler) ===
 
   /** @internal */
   handlePan(dx: number, dy: number): void {

@@ -4,6 +4,7 @@
     CadViewer as CoreCadViewer,
     type CadViewerOptions,
     type FormatConverter,
+    type DebugOptions,
     type DxfLayer,
     type SelectEvent,
     type MeasureEvent,
@@ -16,7 +17,9 @@
     file?: File | ArrayBuffer | string | null;
     theme?: Theme;
     tool?: Tool;
-    options?: Omit<CadViewerOptions, 'theme' | 'initialTool'>;
+    /** Enable debug overlay. Pass `true` for defaults, or a `DebugOptions` object. */
+    debug?: boolean | DebugOptions;
+    options?: Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug'>;
     /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
     formatConverters?: FormatConverter[];
     class?: string;
@@ -30,6 +33,7 @@
     file = null,
     theme = 'dark',
     tool = 'pan',
+    debug,
     options = {},
     formatConverters,
     class: className = '',
@@ -48,6 +52,7 @@
 
     const initialTheme = untrack(() => theme);
     const initialTool = untrack(() => tool);
+    const initialDebug = untrack(() => debug);
     const initialOptions = untrack(() => options);
 
     const initialConverters = untrack(() => formatConverters);
@@ -55,6 +60,7 @@
     const v = new CoreCadViewer(canvas, {
       theme: initialTheme,
       initialTool: initialTool,
+      debug: initialDebug,
       formatConverters: initialConverters,
       ...initialOptions,
     });
@@ -74,6 +80,13 @@
   // React to tool changes
   $effect(() => {
     viewer?.setTool(tool);
+  });
+
+  // React to debug changes
+  $effect(() => {
+    if (debug !== undefined) {
+      viewer?.setDebug(debug);
+    }
   });
 
   // React to file changes

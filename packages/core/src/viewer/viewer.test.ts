@@ -28,8 +28,20 @@ function createMockCanvas(): HTMLCanvasElement {
     fill: vi.fn(),
     arc: vi.fn(),
     fillRect: vi.fn(),
+    strokeRect: vi.fn(),
+    fillText: vi.fn(),
     setTransform: vi.fn(),
+    measureText: vi.fn().mockReturnValue({ width: 100 }),
     canvas: { width: 800, height: 600 },
+    font: '',
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 0,
+    lineCap: '',
+    lineJoin: '',
+    textAlign: '',
+    textBaseline: '',
+    setLineDash: vi.fn(),
   };
 
   return {
@@ -111,6 +123,51 @@ ENDSEC
 SECTION
   2
 ENTITIES
+  0
+ENDSEC
+  0
+EOF
+`;
+
+// DXF with header extents so fitToView() triggers a render
+const DXF_WITH_EXTENTS = `  0
+SECTION
+  2
+HEADER
+  9
+$ACADVER
+  1
+AC1027
+  9
+$EXTMIN
+ 10
+0.0
+ 20
+0.0
+  9
+$EXTMAX
+ 10
+100.0
+ 20
+100.0
+  0
+ENDSEC
+  0
+SECTION
+  2
+ENTITIES
+  0
+LINE
+  8
+0
+ 10
+0.0
+ 20
+0.0
+ 11
+100.0
+ 21
+100.0
   0
 ENDSEC
   0
@@ -648,6 +705,171 @@ describe('CadViewer', () => {
 
       // Document should be null (cleared by destroy)
       expect(viewer.getDocument()).toBeNull();
+    });
+  });
+
+  // ----------------------------------------------------------
+  // Debug Mode
+  // ----------------------------------------------------------
+
+  describe('debug mode', () => {
+    it('debug is off by default — getDebugStats returns null', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas);
+
+      expect(viewer.getDebugStats()).toBeNull();
+      viewer.destroy();
+    });
+
+    it('debug: true enables debug mode', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(stats!.fps).toBeGreaterThanOrEqual(0);
+      expect(stats!.renderStats).toBeDefined();
+      expect(stats!.renderStats.entitiesDrawn).toBeGreaterThanOrEqual(0);
+      expect(stats!.renderStats.entitiesSkipped).toBeGreaterThanOrEqual(0);
+      expect(stats!.renderStats.drawCalls).toBeGreaterThanOrEqual(0);
+
+      viewer.destroy();
+    });
+
+    it('debug: object enables debug mode with granular options', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, {
+        debug: { showFps: true, showCamera: false, position: 'bottom-right' },
+      });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('setDebug(true) enables debug mode at runtime', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas);
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      expect(viewer.getDebugStats()).toBeNull();
+
+      viewer.setDebug(true);
+      // After setDebug triggers a render, stats should be available
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('setDebug(false) disables debug mode at runtime', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      expect(viewer.getDebugStats()).not.toBeNull();
+
+      viewer.setDebug(false);
+      expect(viewer.getDebugStats()).toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('setDebug throws when destroyed', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas);
+      viewer.destroy();
+
+      expect(() => viewer.setDebug(true)).toThrow(
+        'CadViewer: cannot call methods on a destroyed instance.',
+      );
+    });
+
+    it('records parse timing', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(stats!.parseTime).toBeGreaterThanOrEqual(0);
+      expect(typeof stats!.parseTime).toBe('number');
+
+      viewer.destroy();
+    });
+
+    it('records spatial index build timing', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(stats!.spatialIndexBuildTime).toBeGreaterThanOrEqual(0);
+
+      viewer.destroy();
+    });
+
+    it('reports document info', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(stats!.dxfVersion).toBe('AC1027');
+      expect(stats!.layerCount).toBeGreaterThanOrEqual(1);
+      expect(stats!.entityCount).toBe(1); // one LINE entity
+      expect(stats!.fileSize).toBeGreaterThan(0);
+
+      viewer.destroy();
+    });
+
+    it('reports camera info', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(typeof stats!.zoom).toBe('number');
+      expect(typeof stats!.pixelSize).toBe('number');
+      expect(stats!.viewportBounds).toBeDefined();
+      expect(typeof stats!.viewportBounds.minX).toBe('number');
+
+      viewer.destroy();
+    });
+
+    it('totalLoadTime equals parseTime + spatialIndexBuildTime', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+      viewer.loadString(DXF_WITH_EXTENTS);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(stats!.totalLoadTime).toBe(stats!.parseTime + stats!.spatialIndexBuildTime);
+
+      viewer.destroy();
+    });
+
+    it('loadDocument sets parseTime to 0', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { debug: true });
+
+      // Use a doc with entities/extents so fitToView triggers a render
+      const doc = createMinimalDxfDocument();
+      doc.header.extMin = { x: 0, y: 0, z: 0 };
+      doc.header.extMax = { x: 100, y: 100, z: 0 };
+      viewer.loadDocument(doc);
+
+      const stats = viewer.getDebugStats();
+      expect(stats).not.toBeNull();
+      expect(stats!.parseTime).toBe(0);
+
+      viewer.destroy();
     });
   });
 

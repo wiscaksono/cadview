@@ -1,6 +1,7 @@
 import type { DxfDocument } from '../parser/types.js';
 import type { ViewTransform } from './camera.js';
 import type { Theme } from './theme.js';
+import type { RenderStats } from './debug-overlay.js';
 import { THEMES } from './theme.js';
 import { applyTransform } from './camera.js';
 import { resolveEntityColor } from './resolve-color.js';
@@ -54,9 +55,16 @@ export class CanvasRenderer {
     theme: Theme,
     visibleLayers: Set<string>,
     selectedEntityIndex: number,
-  ): void {
+  ): RenderStats {
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
+
+    const stats: RenderStats = {
+      entitiesDrawn: 0,
+      entitiesSkipped: 0,
+      drawCalls: 0,
+      byType: {},
+    };
 
     // 1. Clear in screen space (reset transform then apply DPR scale)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -78,10 +86,16 @@ export class CanvasRenderer {
       const entity = doc.entities[i]!;
 
       // Skip invisible entities
-      if (!entity.visible) continue;
+      if (!entity.visible) {
+        stats.entitiesSkipped++;
+        continue;
+      }
 
       // Skip entities on hidden/frozen/off layers
-      if (!visibleLayers.has(entity.layer)) continue;
+      if (!visibleLayers.has(entity.layer)) {
+        stats.entitiesSkipped++;
+        continue;
+      }
 
       // Resolve color
       const color = resolveEntityColor(entity, doc.layers, theme);
@@ -92,10 +106,11 @@ export class CanvasRenderer {
       ctx.lineWidth = pixelSize; // 1px constant screen width
 
       // Draw entity
-      drawEntity(ctx, entity, doc, vt, theme, pixelSize);
+      stats.entitiesDrawn++;
+      drawEntity(ctx, entity, doc, vt, theme, pixelSize, stats);
     }
 
-    // 6. Draw selection highlight
+    // 6. Draw selection highlight (not counted in stats)
     if (selectedEntityIndex >= 0 && selectedEntityIndex < doc.entities.length) {
       const selEntity = doc.entities[selectedEntityIndex]!;
       // Re-apply transform (in case last entity changed it)
@@ -105,6 +120,8 @@ export class CanvasRenderer {
       ctx.lineWidth = pixelSize * 3; // 3px highlight
       drawEntity(ctx, selEntity, doc, vt, theme, pixelSize);
     }
+
+    return stats;
   }
 
   renderEmpty(theme: Theme): void {
