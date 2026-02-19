@@ -11,7 +11,7 @@ import { EventEmitter } from './events.js';
 import { InputHandler } from './input-handler.js';
 import { SpatialIndex, hitTest } from './selection.js';
 import { MeasureTool, findSnaps, renderMeasureOverlay } from './measure.js';
-import { computeEntitiesBounds } from '../utils/bbox.js';
+import { computeEntitiesBounds, buildBlockEntityBBoxCache, setBlockEntityBBoxCache, clearBlockEntityBBoxCache } from '../utils/bbox.js';
 import { renderDebugOverlay, resolveDebugOptions } from '../renderer/debug-overlay.js';
 export type { DebugOptions, DebugStats, RenderStats } from '../renderer/debug-overlay.js';
 
@@ -283,6 +283,7 @@ export class CadViewer {
     this.doc = null;
     this.selectedEntityIndex = -1;
     this.spatialIndex.clear();
+    clearBlockEntityBBoxCache();
     this.layerManager.clear();
     this.measureTool.deactivate();
     this.requestRender();
@@ -294,9 +295,10 @@ export class CadViewer {
     // Initialize layers
     this.layerManager.setLayers(this.doc.layers);
 
-    // Build spatial index (timed for debug stats)
+    // Build spatial index and block entity bbox cache (timed for debug stats)
     const t0 = performance.now();
     this.spatialIndex.build(this.doc.entities, this.doc);
+    setBlockEntityBBoxCache(buildBlockEntityBBoxCache(this.doc));
     this.spatialIndexBuildTime = performance.now() - t0;
 
     // Reset selection and measurement
@@ -468,6 +470,7 @@ export class CadViewer {
     this.renderer.destroy();
     this.emitter.removeAllListeners();
     this.spatialIndex.clear();
+    clearBlockEntityBBoxCache();
     this.layerManager.clear();
     this.doc = null;
   }

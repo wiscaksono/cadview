@@ -217,6 +217,49 @@ export function computeEntityBBoxWithDoc(
   return computeEntityBBox(entity);
 }
 
+// ─── Block Entity BBox Cache ─────────────────────────────────────────
+// Pre-computed bboxes for block sub-entities, keyed by block name.
+// Eliminates per-frame recomputation in draw-insert.ts.
+
+let _blockEntityBBoxCache: Map<string, (BBox | null)[]> | null = null;
+
+/**
+ * Build the block entity bbox cache for all blocks in the document.
+ * Each block maps to a parallel array of bboxes matching block.entities indices.
+ */
+export function buildBlockEntityBBoxCache(doc: DxfDocument): Map<string, (BBox | null)[]> {
+  const cache = new Map<string, (BBox | null)[]>();
+  for (const [name, block] of doc.blocks) {
+    const bboxes: (BBox | null)[] = new Array(block.entities.length);
+    for (let i = 0; i < block.entities.length; i++) {
+      bboxes[i] = computeEntityBBox(block.entities[i]!);
+    }
+    cache.set(name, bboxes);
+  }
+  return cache;
+}
+
+/** Set the module-level block entity bbox cache. Call once at document load. */
+export function setBlockEntityBBoxCache(cache: Map<string, (BBox | null)[]>): void {
+  _blockEntityBBoxCache = cache;
+}
+
+/** Clear the module-level block entity bbox cache. Call on document clear/destroy. */
+export function clearBlockEntityBBoxCache(): void {
+  _blockEntityBBoxCache = null;
+}
+
+/**
+ * Look up a cached block entity bbox.
+ * Returns the bbox if cached, or undefined if cache miss (caller should fallback).
+ */
+export function getBlockEntityBBox(blockName: string, index: number): BBox | null | undefined {
+  if (!_blockEntityBBoxCache) return undefined;
+  const arr = _blockEntityBBoxCache.get(blockName);
+  if (!arr || index >= arr.length) return undefined;
+  return arr[index];
+}
+
 /**
  * Compute entity bbox without document context.
  * INSERT entities return a zero-size bbox at their insertion point.

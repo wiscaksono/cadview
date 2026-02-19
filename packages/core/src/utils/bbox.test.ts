@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import type {
   DxfDocument,
   DxfEntity,
@@ -12,6 +12,10 @@ import {
   computeBlockContentsBBox,
   computeEntityBBoxWithDoc,
   computeEntitiesBounds,
+  buildBlockEntityBBoxCache,
+  setBlockEntityBBoxCache,
+  clearBlockEntityBBoxCache,
+  getBlockEntityBBox,
   type BBox,
 } from './bbox.js';
 
@@ -308,5 +312,104 @@ describe('computeEntitiesBounds', () => {
     const bounds = computeEntitiesBounds([line, insert]);
     // Line: [-10,-10]-[0,0], Insert point: [200,200]
     expect(bounds).toEqual({ minX: -10, minY: -10, maxX: 200, maxY: 200 });
+  });
+});
+
+// ─── Block Entity BBox Cache ────────────────────────────────────────
+
+describe('blockEntityBBoxCache', () => {
+  afterEach(() => {
+    clearBlockEntityBBoxCache();
+  });
+
+  it('buildBlockEntityBBoxCache computes bboxes for all block entities', () => {
+    const block = makeBlock('A', [
+      makeLine(0, 0, 10, 10),
+      makeLine(5, 5, 20, 15),
+    ]);
+    const doc = makeDoc([], [block]);
+
+    const cache = buildBlockEntityBBoxCache(doc);
+    expect(cache.size).toBe(1);
+
+    const bboxes = cache.get('A')!;
+    expect(bboxes).toHaveLength(2);
+    expect(bboxes[0]).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 10 });
+    expect(bboxes[1]).toEqual({ minX: 5, minY: 5, maxX: 20, maxY: 15 });
+  });
+
+  it('handles multiple blocks', () => {
+    const blockA = makeBlock('A', [makeLine(0, 0, 10, 10)]);
+    const blockB = makeBlock('B', [makeLine(100, 100, 200, 200)]);
+    const doc = makeDoc([], [blockA, blockB]);
+
+    const cache = buildBlockEntityBBoxCache(doc);
+    expect(cache.size).toBe(2);
+    expect(cache.get('A')![0]).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 10 });
+    expect(cache.get('B')![0]).toEqual({ minX: 100, minY: 100, maxX: 200, maxY: 200 });
+  });
+
+  it('handles empty blocks', () => {
+    const block = makeBlock('EMPTY', []);
+    const doc = makeDoc([], [block]);
+
+    const cache = buildBlockEntityBBoxCache(doc);
+    expect(cache.get('EMPTY')).toEqual([]);
+  });
+
+  it('getBlockEntityBBox returns undefined when cache is not set', () => {
+    expect(getBlockEntityBBox('A', 0)).toBeUndefined();
+  });
+
+  it('getBlockEntityBBox returns cached bbox after set', () => {
+    const block = makeBlock('A', [makeLine(1, 2, 3, 4)]);
+    const doc = makeDoc([], [block]);
+
+    const cache = buildBlockEntityBBoxCache(doc);
+    setBlockEntityBBoxCache(cache);
+
+    const bbox = getBlockEntityBBox('A', 0);
+    expect(bbox).toEqual({ minX: 1, minY: 2, maxX: 3, maxY: 4 });
+  });
+
+  it('getBlockEntityBBox returns undefined for unknown block', () => {
+    const block = makeBlock('A', [makeLine(0, 0, 1, 1)]);
+    const doc = makeDoc([], [block]);
+
+    setBlockEntityBBoxCache(buildBlockEntityBBoxCache(doc));
+
+    expect(getBlockEntityBBox('UNKNOWN', 0)).toBeUndefined();
+  });
+
+  it('getBlockEntityBBox returns undefined for out-of-range index', () => {
+    const block = makeBlock('A', [makeLine(0, 0, 1, 1)]);
+    const doc = makeDoc([], [block]);
+
+    setBlockEntityBBoxCache(buildBlockEntityBBoxCache(doc));
+
+    expect(getBlockEntityBBox('A', 99)).toBeUndefined();
+  });
+
+  it('clearBlockEntityBBoxCache resets cache', () => {
+    const block = makeBlock('A', [makeLine(0, 0, 1, 1)]);
+    const doc = makeDoc([], [block]);
+
+    setBlockEntityBBoxCache(buildBlockEntityBBoxCache(doc));
+    expect(getBlockEntityBBox('A', 0)).not.toBeUndefined();
+
+    clearBlockEntityBBoxCache();
+    expect(getBlockEntityBBox('A', 0)).toBeUndefined();
+  });
+
+  it('INSERT entities in blocks get zero-size bbox (without doc context)', () => {
+    const innerInsert = makeInsert('INNER', 50, 50);
+    const block = makeBlock('A', [makeLine(0, 0, 10, 10), innerInsert]);
+    const doc = makeDoc([], [block]);
+
+    const cache = buildBlockEntityBBoxCache(doc);
+    const bboxes = cache.get('A')!;
+    expect(bboxes[0]).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 10 });
+    // INSERT without doc context: zero-size at insertion point
+    expect(bboxes[1]).toEqual({ minX: 50, minY: 50, maxX: 50, maxY: 50 });
   });
 });
