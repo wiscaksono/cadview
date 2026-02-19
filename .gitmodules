@@ -1,0 +1,3 @@
+[submodule "packages/dwg/wasm/libredwg"]
+	path = packages/dwg/wasm/libredwg
+	url = https://github.com/LibreDWG/libredwg.git

@@ -50,6 +50,7 @@ export { SpatialIndex, hitTest } from './viewer/index.js';
 export { MeasureTool, findSnaps, renderMeasureOverlay } from './viewer/index.js';
 export type {
   CadViewerOptions,
+  FormatConverter,
   SelectEvent,
   MeasureEvent,
   CadViewerEventMap,

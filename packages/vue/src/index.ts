@@ -3,6 +3,7 @@ export { useCadViewer } from './useCadViewer.js';
 
 // Re-export core types
 export type {
+  FormatConverter,
   SelectEvent,
   MeasureEvent,
   ViewTransform,

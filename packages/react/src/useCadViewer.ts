@@ -39,6 +39,18 @@ export function useCadViewer(
     }
   }, []);
 
+  const loadBuffer = useCallback(async (buffer: ArrayBuffer) => {
+    if (!viewerRef.current) return;
+    setError(null);
+    try {
+      await viewerRef.current.loadBuffer(buffer);
+      setLayers(viewerRef.current.getLayers());
+      setIsLoaded(true);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    }
+  }, []);
+
   const loadString = useCallback((dxf: string) => {
     if (!viewerRef.current) return;
     setError(null);
@@ -57,6 +69,7 @@ export function useCadViewer(
     isLoaded,
     error,
     loadFile,
+    loadBuffer,
     loadString,
     fitToView: () => viewerRef.current?.fitToView(),
     setLayerVisible: (name: string, visible: boolean) =>

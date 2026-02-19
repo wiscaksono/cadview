@@ -8,6 +8,7 @@ import {
 import {
   CadViewer as CoreCadViewer,
   type CadViewerOptions,
+  type FormatConverter,
   type DxfLayer,
   type SelectEvent,
   type MeasureEvent,
@@ -23,6 +24,8 @@ export interface CadViewerProps {
   className?: string;
   style?: CSSProperties;
   options?: Omit<CadViewerOptions, 'theme' | 'initialTool'>;
+  /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
+  formatConverters?: FormatConverter[];
   onSelect?: (event: SelectEvent) => void;
   onMeasure?: (event: MeasureEvent) => void;
   onViewChange?: (transform: ViewTransform) => void;
@@ -45,6 +48,7 @@ export const CadViewer = forwardRef<CadViewerRef, CadViewerProps>(
       className,
       style,
       options,
+      formatConverters,
       onSelect,
       onMeasure,
       onViewChange,
@@ -60,6 +64,7 @@ export const CadViewer = forwardRef<CadViewerRef, CadViewerProps>(
       const viewer = new CoreCadViewer(canvasRef.current, {
         theme,
         initialTool: tool,
+        formatConverters,
         ...options,
       });
       viewerRef.current = viewer;
@@ -81,19 +86,32 @@ export const CadViewer = forwardRef<CadViewerRef, CadViewerProps>(
     useEffect(() => {
       const viewer = viewerRef.current;
       if (!viewer || !file) return;
+      let cancelled = false;
 
-      if (file instanceof File) {
-        viewer.loadFile(file).then(
-          () => onLayersLoaded?.(viewer.getLayers()),
-          (err) => console.error('CadViewer: failed to load file', err),
-        );
-      } else if (file instanceof ArrayBuffer) {
-        viewer.loadArrayBuffer(file);
-        onLayersLoaded?.(viewer.getLayers());
-      } else if (typeof file === 'string') {
-        viewer.loadString(file);
-        onLayersLoaded?.(viewer.getLayers());
-      }
+      const load = async () => {
+        try {
+          if (file instanceof File) {
+            await viewer.loadFile(file);
+          } else if (file instanceof ArrayBuffer) {
+            await viewer.loadBuffer(file);
+          } else if (typeof file === 'string') {
+            viewer.loadString(file);
+          }
+          if (!cancelled) {
+            onLayersLoaded?.(viewer.getLayers());
+          }
+        } catch (err) {
+          if (!cancelled) {
+            console.error('CadViewer: failed to load file', err);
+          }
+        }
+      };
+
+      load();
+
+      return () => {
+        cancelled = true;
+      };
     }, [file]);
 
     useEffect(() => {

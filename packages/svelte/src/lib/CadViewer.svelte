@@ -3,6 +3,7 @@
   import {
     CadViewer as CoreCadViewer,
     type CadViewerOptions,
+    type FormatConverter,
     type DxfLayer,
     type SelectEvent,
     type MeasureEvent,
@@ -16,6 +17,8 @@
     theme?: Theme;
     tool?: Tool;
     options?: Omit<CadViewerOptions, 'theme' | 'initialTool'>;
+    /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
+    formatConverters?: FormatConverter[];
     class?: string;
     onselect?: (event: SelectEvent) => void;
     onmeasure?: (event: MeasureEvent) => void;
@@ -28,6 +31,7 @@
     theme = 'dark',
     tool = 'pan',
     options = {},
+    formatConverters,
     class: className = '',
     onselect,
     onmeasure,
@@ -46,9 +50,12 @@
     const initialTool = untrack(() => tool);
     const initialOptions = untrack(() => options);
 
+    const initialConverters = untrack(() => formatConverters);
+
     const v = new CoreCadViewer(canvas, {
       theme: initialTheme,
       initialTool: initialTool,
+      formatConverters: initialConverters,
       ...initialOptions,
     });
     viewer = v;
@@ -73,19 +80,32 @@
   $effect(() => {
     if (!viewer || !file) return;
     const v = viewer;
+    let cancelled = false;
 
-    if (file instanceof File) {
-      v.loadFile(file).then(
-        () => { untrack(() => onlayersloaded)?.(v.getLayers()); },
-        (err: unknown) => { console.error('CadViewer: failed to load file', err); },
-      );
-    } else if (file instanceof ArrayBuffer) {
-      v.loadArrayBuffer(file);
-      untrack(() => onlayersloaded)?.(v.getLayers());
-    } else if (typeof file === 'string') {
-      v.loadString(file);
-      untrack(() => onlayersloaded)?.(v.getLayers());
-    }
+    const load = async () => {
+      try {
+        if (file instanceof File) {
+          await v.loadFile(file);
+        } else if (file instanceof ArrayBuffer) {
+          await v.loadBuffer(file);
+        } else if (typeof file === 'string') {
+          v.loadString(file);
+        }
+        if (!cancelled) {
+          untrack(() => onlayersloaded)?.(v.getLayers());
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          console.error('CadViewer: failed to load file', err);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   });
 
   // Event listener management

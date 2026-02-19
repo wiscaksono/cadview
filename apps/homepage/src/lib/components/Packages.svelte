@@ -5,17 +5,29 @@
 		{
 			name: '@cadview/react',
 			description: 'React 18/19 component & hook',
-			npm: 'https://www.npmjs.com/package/@cadview/react'
+			npm: 'https://www.npmjs.com/package/@cadview/react',
+			license: 'MIT'
 		},
 		{
 			name: '@cadview/svelte',
 			description: 'Svelte 5 component (runes)',
-			npm: 'https://www.npmjs.com/package/@cadview/svelte'
+			npm: 'https://www.npmjs.com/package/@cadview/svelte',
+			license: 'MIT'
 		},
 		{
 			name: '@cadview/vue',
 			description: 'Vue 3 component & composable',
-			npm: 'https://www.npmjs.com/package/@cadview/vue'
+			npm: 'https://www.npmjs.com/package/@cadview/vue',
+			license: 'MIT'
+		}
+	];
+
+	const extensions = [
+		{
+			name: '@cadview/dwg',
+			description: 'DWG file support via LibreDWG WASM',
+			npm: 'https://www.npmjs.com/package/@cadview/dwg',
+			license: 'GPL-3.0'
 		}
 	];
 </script>
@@ -59,6 +71,23 @@
 						<div class="package-meta">
 							<span class="package-version">v0.1.0</span>
 							<a href={wrapper.npm} target="_blank" rel="noopener" class="package-link">npm</a>
+						</div>
+					</div>
+				{/each}
+			</div>
+
+			<div class="packages-extensions-label" use:reveal>// extensions</div>
+			<div class="packages-extensions">
+				{#each extensions as ext, i}
+					<div class="package-card package-extension" use:reveal={{ index: i + 4 }}>
+						<div class="package-name-row">
+							<span class="package-name">{ext.name}</span>
+							<span class="package-license">{ext.license}</span>
+						</div>
+						<p>{ext.description}</p>
+						<div class="package-meta">
+							<span class="package-version">v0.1.0</span>
+							<a href={ext.npm} target="_blank" rel="noopener" class="package-link">npm</a>
 						</div>
 					</div>
 				{/each}
@@ -212,6 +241,47 @@
 		z-index: 1;
 		border-color: var(--primary-dim);
 		box-shadow: 0 4px 24px rgba(34, 211, 238, 0.08);
+	}
+
+	/* Extensions section */
+	.packages-extensions-label {
+		font-family: var(--font-mono);
+		font-size: 0.78rem;
+		color: var(--muted);
+		margin-top: 32px;
+		margin-bottom: 12px;
+		letter-spacing: 0.03em;
+	}
+	.packages-extensions {
+		display: flex;
+		justify-content: center;
+		width: 100%;
+		max-width: 700px;
+	}
+	.package-extension {
+		max-width: 340px;
+		width: 100%;
+	}
+	.package-extension:hover {
+		border-color: var(--accent);
+		box-shadow: 0 4px 24px rgba(249, 115, 22, 0.08);
+	}
+	.package-name-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 6px;
+	}
+	.package-name-row .package-name {
+		margin-bottom: 0;
+	}
+	.package-license {
+		font-family: var(--font-mono);
+		font-size: 0.6rem;
+		padding: 1px 6px;
+		border: 1px solid var(--accent);
+		color: var(--accent);
+		letter-spacing: 0.04em;
 	}
 
 	@media (max-width: 768px) {

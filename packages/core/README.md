@@ -76,14 +76,18 @@ new CadViewer(canvas: HTMLCanvasElement, options?: CadViewerOptions)
 | `maxZoom` | `number` | `100000` | Maximum zoom scale |
 | `zoomSpeed` | `number` | `1.1` | Zoom factor per wheel tick |
 | `initialTool` | `Tool` | `'pan'` | Active tool on init |
+| `formatConverters` | `FormatConverter[]` | `[]` | Format converters for non-DXF files (e.g. DWG) |
 
 #### Methods
 
 | Method | Description |
 |--------|-------------|
-| `loadFile(file: File)` | Load DXF from a File object |
-| `loadString(dxf: string)` | Load DXF from a string |
-| `loadArrayBuffer(buffer: ArrayBuffer)` | Load DXF from an ArrayBuffer |
+| `loadFile(file: File)` | Load from a File object (async, runs format converters) |
+| `loadBuffer(buffer: ArrayBuffer)` | Load from an ArrayBuffer (async, runs format converters) |
+| `loadString(dxf: string)` | Load DXF from a string (sync, no conversion) |
+| `loadArrayBuffer(buffer: ArrayBuffer)` | Load DXF from an ArrayBuffer (sync, no conversion) |
+| `loadDocument(doc: DxfDocument)` | Load a pre-parsed DxfDocument directly |
+| `clearDocument()` | Clear the current document without destroying the viewer |
 | `fitToView()` | Fit drawing to canvas bounds |
 | `setTheme(theme)` | Set color theme |
 | `setTool(tool)` | Set active tool (`pan`, `select`, `measure`) |
@@ -92,6 +96,35 @@ new CadViewer(canvas: HTMLCanvasElement, options?: CadViewerOptions)
 | `on(event, callback)` | Subscribe to events |
 | `off(event, callback)` | Unsubscribe from events |
 | `destroy()` | Clean up all resources |
+
+### `FormatConverter`
+
+Interface for registering custom file format converters. Converters are checked in order during `loadFile()` and `loadBuffer()` — the first match wins.
+
+```ts
+interface FormatConverter {
+  /** Return true if the buffer is in this format (check magic bytes, not extensions). */
+  detect(buffer: ArrayBuffer): boolean;
+  /** Convert the buffer to a DXF string. */
+  convert(buffer: ArrayBuffer): Promise<string>;
+}
+```
+
+**Example — DWG support via `@cadview/dwg`:**
+
+```ts
+import { CadViewer } from '@cadview/core';
+import { dwgConverter } from '@cadview/dwg';
+
+const viewer = new CadViewer(canvas, {
+  formatConverters: [dwgConverter],
+});
+
+// loadFile and loadBuffer now handle both DXF and DWG
+await viewer.loadFile(file);
+```
+
+> **Note:** `@cadview/dwg` is licensed under GPL-3.0 (due to LibreDWG). `@cadview/core` remains MIT. See the [@cadview/dwg README](../dwg/README.md) for details.
 
 ### `parseDxf`
 

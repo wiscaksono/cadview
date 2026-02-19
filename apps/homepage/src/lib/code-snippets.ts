@@ -17,13 +17,15 @@ export const tabLangs: Record<TabId, string> = {
 
 export const codeSnippets: Record<TabId, string> = {
 	vanilla: `import { CadViewer } from '@cadview/core';
+import { dwgConverter } from '@cadview/dwg'; // optional
 
 const canvas = document.getElementById('canvas');
 const viewer = new CadViewer(canvas, {
-  theme: 'dark'
+  theme: 'dark',
+  formatConverters: [dwgConverter] // DWG support
 });
 
-// Load from File input
+// Load from File input (.dxf or .dwg)
 const file = input.files[0];
 await viewer.loadFile(file);
 viewer.fitToView();
@@ -38,6 +40,7 @@ viewer.destroy();`,
 
 	react: `import { useState } from 'react';
 import { CadViewer } from '@cadview/react';
+import { dwgConverter } from '@cadview/dwg';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -45,12 +48,13 @@ function App() {
   return (
     <div style={{ height: '100vh' }}>
       <input
-        type="file" accept=".dxf"
+        type="file" accept=".dxf,.dwg"
         onChange={(e) => setFile(e.target.files[0])}
       />
       <CadViewer
         file={file}
         theme="dark"
+        formatConverters={[dwgConverter]}
         onSelect={(e) => console.log(e.entity.type)}
       />
     </div>
@@ -59,12 +63,13 @@ function App() {
 
 	svelte: `<script>
   import { CadViewer } from '@cadview/svelte';
+  import { dwgConverter } from '@cadview/dwg';
 
   let file = $state(null);
 <\/script>
 
 <input
-  type="file" accept=".dxf"
+  type="file" accept=".dxf,.dwg"
   onchange={(e) => file = e.target.files?.[0]}
 />
 
@@ -72,15 +77,17 @@ function App() {
   {file}
   theme="dark"
   tool="pan"
+  formatConverters={[dwgConverter]}
   onselect={(e) => console.log(e.entity.type)}
   onmeasure={(e) => console.log(e.distance)}
 />`,
 
 	vue: `<template>
-  <input type="file" accept=".dxf" @change="onFile" />
+  <input type="file" accept=".dxf,.dwg" @change="onFile" />
   <CadViewer
     :file="file"
     theme="dark"
+    :format-converters="[dwgConverter]"
     @select="(e) => console.log(e.entity.type)"
     @measure="(e) => console.log(e.distance)"
   />
@@ -89,6 +96,7 @@ function App() {
 <script setup>
 import { ref } from 'vue';
 import { CadViewer } from '@cadview/vue';
+import { dwgConverter } from '@cadview/dwg';
 
 const file = ref(null);
 const onFile = (e) => file.value = e.target.files?.[0];

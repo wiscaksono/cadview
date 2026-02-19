@@ -1,0 +1,63 @@
+{
+  "name": "@cadview/dwg",
+  "version": "0.1.0",
+  "description": "DWG file format support for @cadview/core via LibreDWG WASM",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "@cadview/core": ">=0.1.0"
+  },
+  "devDependencies": {
+    "@cadview/core": "workspace:*",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:wasm": "bash wasm/build.sh",
+    "build:all": "tsup && bash wasm/build.sh",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "cad",
+    "dwg",
+    "dxf",
+    "autocad",
+    "wasm",
+    "libredwg",
+    "viewer",
+    "converter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wiscaksono/cadview",
+    "directory": "packages/dwg"
+  },
+  "author": "Wisnu Wicaksono",
+  "homepage": "https://cadview.wiscaksono.com"
+}

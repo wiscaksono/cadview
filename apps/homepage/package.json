@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"@cadview/core": "workspace:*",
+		"@cadview/dwg": "workspace:*",
 		"@cadview/svelte": "workspace:*"
 	},
 	"devDependencies": {

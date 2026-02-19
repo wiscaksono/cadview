@@ -32,6 +32,13 @@ export function useCadViewer(
     isLoaded.value = true;
   };
 
+  const loadBuffer = async (buffer: ArrayBuffer) => {
+    if (!viewer.value) return;
+    await viewer.value.loadBuffer(buffer);
+    layers.value = viewer.value.getLayers();
+    isLoaded.value = true;
+  };
+
   const loadString = (dxf: string) => {
     if (!viewer.value) return;
     viewer.value.loadString(dxf);
@@ -44,6 +51,7 @@ export function useCadViewer(
     layers,
     isLoaded,
     loadFile,
+    loadBuffer,
     loadString,
     fitToView: () => viewer.value?.fitToView(),
     setLayerVisible: (name: string, visible: boolean) =>
