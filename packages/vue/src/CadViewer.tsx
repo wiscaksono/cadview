@@ -40,8 +40,12 @@ export const CadViewer = defineComponent({
       type: [Boolean, Object] as PropType<boolean | DebugOptions>,
       default: undefined,
     },
+    worker: {
+      type: Boolean as PropType<boolean>,
+      default: false,
+    },
     options: {
-      type: Object as PropType<Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug'>>,
+      type: Object as PropType<Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug' | 'worker'>>,
       default: () => ({}),
     },
     formatConverters: {
@@ -63,6 +67,7 @@ export const CadViewer = defineComponent({
         theme: props.theme,
         initialTool: props.tool,
         debug: props.debug,
+        worker: props.worker,
         formatConverters: props.formatConverters,
         ...props.options,
       });
