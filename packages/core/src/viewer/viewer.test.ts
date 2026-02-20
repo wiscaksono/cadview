@@ -72,6 +72,20 @@ function createMockCanvas(): HTMLCanvasElement {
 
 let resizeObserverInstances: { disconnect: ReturnType<typeof vi.fn> }[] = [];
 
+// Worker mock — tracks instances so tests can simulate messages
+type WorkerMessageHandler = ((e: { data: any }) => void) | null;
+type WorkerErrorHandler = ((e: { message: string }) => void) | null;
+
+interface MockWorkerInstance {
+  postMessage: ReturnType<typeof vi.fn>;
+  terminate: ReturnType<typeof vi.fn>;
+  onmessage: WorkerMessageHandler;
+  onerror: WorkerErrorHandler;
+  _simulateMessage(data: any): void;
+}
+
+let mockWorkerInstances: MockWorkerInstance[] = [];
+
 function setupGlobals() {
   // Mock window (for window.devicePixelRatio used by CanvasRenderer)
   if (typeof globalThis.window === 'undefined') {
@@ -107,13 +121,39 @@ function setupGlobals() {
   }) as any;
 
   globalThis.cancelAnimationFrame = vi.fn() as any;
+
+  // Mock Worker/Blob/URL for worker-mode tests
+  // (also needed when CadViewer imports WorkerManager at module level)
+  (globalThis as any).__WORKER_CODE__ = 'self.onmessage = function() {}';
+  (globalThis as any).Worker = vi.fn().mockImplementation(() => {
+    const inst: MockWorkerInstance = {
+      postMessage: vi.fn(),
+      terminate: vi.fn(),
+      onmessage: null,
+      onerror: null,
+      _simulateMessage(data: any) { this.onmessage?.({ data }); },
+    };
+    mockWorkerInstances.push(inst);
+    return inst;
+  });
+  if (typeof globalThis.Blob === 'undefined') {
+    (globalThis as any).Blob = vi.fn().mockImplementation(() => ({}));
+  }
+  const origURL = globalThis.URL;
+  (globalThis as any).URL = {
+    ...origURL,
+    createObjectURL: vi.fn().mockReturnValue('blob:mock-url'),
+    revokeObjectURL: vi.fn(),
+  };
 }
 
 function teardownGlobals() {
   resizeObserverInstances = [];
+  mockWorkerInstances = [];
   delete (globalThis as any).ResizeObserver;
   delete (globalThis as any).requestAnimationFrame;
   delete (globalThis as any).cancelAnimationFrame;
+  delete (globalThis as any).__WORKER_CODE__;
   // Don't delete window entirely — just clean up our additions
 }
 
@@ -964,6 +1004,222 @@ describe('CadViewer', () => {
       await viewer.loadBuffer(strToBuffer(MINIMAL_DXF));
       expect(viewer.getDocument()).not.toBeNull();
 
+      viewer.destroy();
+    });
+  });
+
+  // ----------------------------------------------------------
+  // Worker mode
+  // ----------------------------------------------------------
+
+  describe('worker mode', () => {
+    function createMinimalParsedDoc() {
+      return {
+        header: { acadVersion: 'AC1027', insUnits: 0, measurement: 0, ltScale: 1 },
+        layers: new Map([['0', {
+          name: '0', color: 7, lineType: 'Continuous', flags: 0,
+          lineWeight: -3, isOff: false, isFrozen: false, isLocked: false,
+        }]]),
+        lineTypes: new Map(),
+        styles: new Map(),
+        blocks: new Map(),
+        entities: [],
+      };
+    }
+
+    it('does not create a Worker when worker option is false/undefined', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas);
+      expect(mockWorkerInstances).toHaveLength(0);
+      viewer.destroy();
+    });
+
+    it('loadFile uses Worker when worker: true', async () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      const file = new File([MINIMAL_DXF], 'test.dxf');
+      const loadPromise = viewer.loadFile(file);
+
+      // Wait for file.arrayBuffer() + converter check to complete
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      // Worker should have been created and received a parse message
+      expect(mockWorkerInstances).toHaveLength(1);
+      const worker = mockWorkerInstances[0]!;
+      expect(worker.postMessage).toHaveBeenCalled();
+
+      // Simulate Worker returning a parsed document
+      const call = worker.postMessage.mock.calls[0]!;
+      const id = call[0].id;
+      worker._simulateMessage({
+        type: 'result',
+        id,
+        doc: createMinimalParsedDoc(),
+      });
+
+      await loadPromise;
+      expect(viewer.getDocument()).not.toBeNull();
+      expect(viewer.getDocument()!.header.acadVersion).toBe('AC1027');
+
+      viewer.destroy();
+    });
+
+    it('loadBuffer uses Worker when worker: true', async () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      const loadPromise = viewer.loadBuffer(strToBuffer(MINIMAL_DXF));
+
+      // Wait for converter check to complete
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      expect(mockWorkerInstances).toHaveLength(1);
+      const worker = mockWorkerInstances[0]!;
+
+      const call = worker.postMessage.mock.calls[0]!;
+      worker._simulateMessage({
+        type: 'result',
+        id: call[0].id,
+        doc: createMinimalParsedDoc(),
+      });
+
+      await loadPromise;
+      expect(viewer.getDocument()).not.toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('loadString does NOT use Worker (stays sync)', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      viewer.loadString(MINIMAL_DXF);
+
+      // Worker should not have been used
+      expect(mockWorkerInstances).toHaveLength(0);
+      expect(viewer.getDocument()).not.toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('loadArrayBuffer does NOT use Worker (stays sync)', () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      viewer.loadArrayBuffer(strToBuffer(MINIMAL_DXF));
+
+      // Worker should not have been used
+      expect(mockWorkerInstances).toHaveLength(0);
+      expect(viewer.getDocument()).not.toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('destroy terminates the Worker', async () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      // Trigger Worker creation by starting a load
+      const loadPromise = viewer.loadBuffer(strToBuffer(MINIMAL_DXF));
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      expect(mockWorkerInstances).toHaveLength(1);
+      const worker = mockWorkerInstances[0]!;
+
+      // Complete the load
+      const call = worker.postMessage.mock.calls[0]!;
+      worker._simulateMessage({
+        type: 'result',
+        id: call[0].id,
+        doc: createMinimalParsedDoc(),
+      });
+      await loadPromise;
+
+      // Now destroy
+      viewer.destroy();
+      expect(worker.terminate).toHaveBeenCalled();
+    });
+
+    it('silently discards Worker results when destroyed during parse', async () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      const loadPromise = viewer.loadBuffer(strToBuffer(MINIMAL_DXF));
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      const worker = mockWorkerInstances[0]!;
+
+      // Destroy before Worker responds
+      viewer.destroy();
+
+      // Worker's pending request should have been rejected
+      await loadPromise; // Should resolve without error (generation check)
+
+      expect(viewer.getDocument()).toBeNull();
+    });
+
+    it('loadFile with converter + worker: converter runs on main thread, parsing in Worker', async () => {
+      const mockConverter: FormatConverter = {
+        detect: vi.fn().mockReturnValue(true),
+        convert: vi.fn().mockResolvedValue(MINIMAL_DXF),
+      };
+
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, {
+        worker: true,
+        formatConverters: [mockConverter],
+      });
+
+      const file = new File(['FAKEFILE'], 'test.dwg');
+      const loadPromise = viewer.loadFile(file);
+
+      // Wait for file.arrayBuffer() + converter to complete
+      await new Promise((r) => { setTimeout(r, 0); });
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      // Converter ran on main thread
+      expect(mockConverter.detect).toHaveBeenCalled();
+      expect(mockConverter.convert).toHaveBeenCalled();
+
+      // Worker received the DXF string for parsing
+      expect(mockWorkerInstances).toHaveLength(1);
+      const worker = mockWorkerInstances[0]!;
+      const call = worker.postMessage.mock.calls[0]!;
+      expect(typeof call[0].payload).toBe('string'); // DXF string, not ArrayBuffer
+
+      worker._simulateMessage({
+        type: 'result',
+        id: call[0].id,
+        doc: createMinimalParsedDoc(),
+      });
+
+      await loadPromise;
+      expect(viewer.getDocument()).not.toBeNull();
+
+      viewer.destroy();
+    });
+
+    it('worker parse error propagates to loadBuffer caller', async () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      const loadPromise = viewer.loadBuffer(strToBuffer(MINIMAL_DXF));
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      const worker = mockWorkerInstances[0]!;
+      const call = worker.postMessage.mock.calls[0]!;
+
+      // Worker responds with a parse error
+      worker._simulateMessage({
+        type: 'error',
+        id: call[0].id,
+        message: 'Failed to parse DXF sections.',
+      });
+
+      await expect(loadPromise).rejects.toThrow('Failed to parse DXF sections.');
+
+      expect(viewer.getDocument()).toBeNull();
       viewer.destroy();
     });
   });

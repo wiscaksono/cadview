@@ -5,7 +5,16 @@
   "license": "MIT",
   "description": "Framework-agnostic CAD file viewer engine with DXF parser and Canvas 2D renderer",
   "author": "Wisnu Wicaksono",
-  "keywords": ["cad", "dxf", "viewer", "canvas", "2d", "parser", "autocad", "drawing"],
+  "keywords": [
+    "cad",
+    "dxf",
+    "viewer",
+    "canvas",
+    "2d",
+    "parser",
+    "autocad",
+    "drawing"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wiscaksono/cadview.git",
@@ -33,7 +42,11 @@
       }
     }
   },
-  "files": ["dist", "LICENSE", "README.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -46,9 +59,10 @@
     "rbush": "^4.0.1"
   },
   "devDependencies": {
+    "esbuild": "^0.27.3",
     "tsup": "^8.0.0",
-    "vitest": "^3.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   },
   "sideEffects": false
 }

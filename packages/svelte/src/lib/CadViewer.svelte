@@ -19,7 +19,9 @@
     tool?: Tool;
     /** Enable debug overlay. Pass `true` for defaults, or a `DebugOptions` object. */
     debug?: boolean | DebugOptions;
-    options?: Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug'>;
+    /** Enable off-main-thread DXF parsing via Web Worker. */
+    worker?: boolean;
+    options?: Omit<CadViewerOptions, 'theme' | 'initialTool' | 'debug' | 'worker'>;
     /** Format converters for non-DXF file formats (e.g. DWG via @cadview/dwg). */
     formatConverters?: FormatConverter[];
     class?: string;
@@ -34,6 +36,7 @@
     theme = 'dark',
     tool = 'pan',
     debug,
+    worker,
     options = {},
     formatConverters,
     class: className = '',
@@ -53,6 +56,7 @@
     const initialTheme = untrack(() => theme);
     const initialTool = untrack(() => tool);
     const initialDebug = untrack(() => debug);
+    const initialWorker = untrack(() => worker);
     const initialOptions = untrack(() => options);
 
     const initialConverters = untrack(() => formatConverters);
@@ -61,6 +65,7 @@
       theme: initialTheme,
       initialTool: initialTool,
       debug: initialDebug,
+      worker: initialWorker,
       formatConverters: initialConverters,
       ...initialOptions,
     });

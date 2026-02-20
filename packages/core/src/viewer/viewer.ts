@@ -13,6 +13,7 @@ import { SpatialIndex, hitTest } from './selection.js';
 import { MeasureTool, findSnaps, renderMeasureOverlay } from './measure.js';
 import { computeEntitiesBounds, buildBlockEntityBBoxCache, setBlockEntityBBoxCache, clearBlockEntityBBoxCache } from '../utils/bbox.js';
 import { renderDebugOverlay, resolveDebugOptions } from '../renderer/debug-overlay.js';
+import { WorkerManager } from '../worker/worker-manager.js';
 export type { DebugOptions, DebugStats, RenderStats } from '../renderer/debug-overlay.js';
 
 export type Tool = 'pan' | 'select' | 'measure';
@@ -52,6 +53,14 @@ export interface CadViewerOptions {
    * Pass `true` for defaults, or an object for granular control.
    */
   debug?: boolean | import('../renderer/debug-overlay.js').DebugOptions;
+  /**
+   * Enable off-main-thread DXF parsing using a Web Worker.
+   * When `true`, the async load methods (`loadFile()`, `loadBuffer()`) will
+   * parse DXF content in a Web Worker to avoid blocking the UI thread.
+   * Synchronous methods (`loadString()`, `loadArrayBuffer()`) are unaffected.
+   * @default false
+   */
+  worker?: boolean;
 }
 
 interface ResolvedOptions {
@@ -78,6 +87,7 @@ export class CadViewer {
   private inputHandler: InputHandler;
   private resizeObserver: ResizeObserver;
   private formatConverters: FormatConverter[];
+  private workerManager: WorkerManager | null = null;
   private selectedEntityIndex: number = -1;
   private renderPending: boolean = false;
   private destroyed: boolean = false;
@@ -112,6 +122,11 @@ export class CadViewer {
     };
 
     this.formatConverters = options?.formatConverters ?? [];
+
+    // Worker for off-main-thread parsing
+    if (options?.worker) {
+      this.workerManager = new WorkerManager();
+    }
 
     // Resolve debug options
     if (options?.debug) {
@@ -201,7 +216,9 @@ export class CadViewer {
     if (this.destroyed || generation !== this.loadGeneration) return;
 
     const t0 = performance.now();
-    this.doc = dxfString != null ? parseDxf(dxfString) : parseDxf(buffer);
+    const parseInput = dxfString ?? buffer;
+    this.doc = await this.parseWithOptionalWorker(parseInput, generation);
+    if (this.destroyed || generation !== this.loadGeneration) return;
     this.parseTime = performance.now() - t0;
     this.onDocumentLoaded();
   }
@@ -221,9 +238,35 @@ export class CadViewer {
     if (this.destroyed || generation !== this.loadGeneration) return;
 
     const t0 = performance.now();
-    this.doc = dxfString != null ? parseDxf(dxfString) : parseDxf(buffer);
+    const parseInput = dxfString ?? buffer;
+    this.doc = await this.parseWithOptionalWorker(parseInput, generation);
+    if (this.destroyed || generation !== this.loadGeneration) return;
     this.parseTime = performance.now() - t0;
     this.onDocumentLoaded();
+  }
+
+  /**
+   * Parse input using the Worker (if enabled) or the main-thread parser.
+   * When the Worker is terminated (e.g. viewer destroyed) while a parse is
+   * in flight, the rejection is swallowed if the load generation is stale.
+   */
+  private async parseWithOptionalWorker(
+    input: string | ArrayBuffer,
+    generation: number,
+  ): Promise<DxfDocument | null> {
+    if (!this.workerManager) {
+      return parseDxf(input);
+    }
+    try {
+      return await this.workerManager.parse(input);
+    } catch (err) {
+      // If the viewer was destroyed or a newer load superseded this one,
+      // the Worker rejection is expected — swallow it silently.
+      if (this.destroyed || generation !== this.loadGeneration) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   /**
@@ -472,6 +515,8 @@ export class CadViewer {
     this.spatialIndex.clear();
     clearBlockEntityBBoxCache();
     this.layerManager.clear();
+    this.workerManager?.terminate();
+    this.workerManager = null;
     this.doc = null;
   }
 
