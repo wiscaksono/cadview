@@ -1,6 +1,6 @@
 {
   "name": "@cadview/react",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "license": "MIT",
   "description": "React wrapper for @cadview/core — CAD/DXF file viewer component",
