@@ -5,32 +5,32 @@
 		{
 			title: 'DXF Parser',
 			description:
-				'Fast parser supporting 13 entity types \u2014 LINE, CIRCLE, ARC, SPLINE, POLYLINE, TEXT, and more. Handles encoding detection and malformed input gracefully.'
+				"Parses 13 DXF entity types including LINE, CIRCLE, ARC, SPLINE, POLYLINE, TEXT, MTEXT, and INSERT. Handles encoding detection and won't crash on malformed input."
 		},
 		{
 			title: 'Canvas 2D Renderer',
 			description:
-				'DPR-aware rendering engine with dark and light themes. ACI color table with 256 colors. Block INSERT rendering with nested block support.'
+				'Renders to Canvas 2D with DPR scaling. Dark and light themes, full ACI 256-color table. Supports nested block INSERTs and MINSERT grids.'
 		},
 		{
 			title: 'Interactive Viewer',
 			description:
-				'Pan, zoom (mouse wheel + pinch gesture), and pointer capture. Smooth camera transforms. Configurable zoom speed and limits.'
+				'Pan and zoom via mouse wheel, trackpad pinch, or touch. Pointer capture keeps input working even outside the canvas. Zoom speed and min/max are configurable.'
 		},
 		{
 			title: 'Entity Selection',
 			description:
-				'R-tree spatial indexing via rbush for fast hit-testing. Geometric distance calculations for precise entity picking at any zoom level.'
+				'Uses an R-tree (rbush) for spatial indexing, so hit-testing stays fast even with thousands of entities. Picking is based on geometric distance, not bounding boxes.'
 		},
 		{
 			title: 'Measurement Tool',
 			description:
-				'Snap-to-geometry with endpoint, midpoint, and center snap types. Real-time distance, delta, and angle readouts with visual overlay.'
+				'Snaps to endpoints, midpoints, and centers. Shows distance, delta X/Y, and angle as you measure, drawn directly on the canvas.'
 		},
 		{
 			title: 'Framework Wrappers',
 			description:
-				'First-class components for React, Svelte 5, and Vue 3. Reactive props, event callbacks, and hooks/composables included.'
+				'Drop-in components for React, Svelte 5, and Vue 3. Props are reactive, events are callbacks, and each wrapper ships a hook or composable.'
 		}
 	];
 </script>

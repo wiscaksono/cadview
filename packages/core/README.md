@@ -4,15 +4,15 @@ Framework-agnostic CAD file viewer engine with DXF parser and Canvas 2D renderer
 
 ## Features
 
-- Fast DXF parser with support for 13 entity types (LINE, CIRCLE, ARC, LWPOLYLINE, POLYLINE, ELLIPSE, SPLINE, TEXT, MTEXT, INSERT, DIMENSION, HATCH, POINT)
-- Canvas 2D renderer with DPR-aware rendering and dark/light themes
-- Interactive viewer with pan, zoom (mouse wheel + pinch), and pointer capture
-- Entity selection with spatial indexing (R-tree) and geometric hit-testing
-- Measurement tool with snap-to-geometry (endpoint, midpoint, center)
-- Layer management with visibility toggle and color overrides
-- ACI color table (256 colors) with theme-aware color 7 swap
-- Block INSERT rendering with nested block support
-- Zero framework dependencies — works with any UI framework or vanilla JS
+- Parses 13 DXF entity types: LINE, CIRCLE, ARC, LWPOLYLINE, POLYLINE, ELLIPSE, SPLINE, TEXT, MTEXT, INSERT, DIMENSION, HATCH, POINT
+- Canvas 2D renderer with DPR scaling and dark/light themes
+- Pan, zoom (mouse wheel + pinch), pointer capture, and touch support
+- R-tree spatial indexing (rbush) for entity selection and hit-testing
+- Measurement tool that snaps to endpoints, midpoints, and centers
+- Layer visibility toggle and color overrides
+- Full ACI color table (256 colors), swaps color 7 for dark/light themes
+- Block INSERT rendering, including nested blocks
+- No framework dependencies, works with any UI framework or vanilla JS
 
 ## Installation
 

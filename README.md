@@ -8,18 +8,18 @@ A framework-agnostic CAD/DXF/DWG file viewer for the web.
 
 ## Features
 
-- **Fast DXF parser** supporting 13 entity types
-- **Canvas 2D renderer** with DPR-aware rendering and dark/light themes
-- **Interactive viewer** with pan, zoom (mouse wheel + pinch), and pointer capture
-- **Entity selection** with R-tree spatial indexing and geometric hit-testing
-- **Measurement tool** with snap-to-geometry (endpoint, midpoint, center)
-- **Layer management** with visibility toggle and color overrides
-- **ACI color table** (256 colors) with theme-aware color resolution
-- **Block INSERT rendering** with nested block and MINSERT grid support
-- **DWG file support** via `@cadview/dwg` — LibreDWG compiled to WebAssembly, zero-config CDN loading
-- **Framework wrappers** for React, Svelte 5, and Vue 3
-- **Zero framework dependencies** in the core package
-- **TypeScript-first** with full type definitions
+- Parses 13 DXF entity types (LINE, CIRCLE, ARC, LWPOLYLINE, ELLIPSE, SPLINE, TEXT, MTEXT, and more)
+- Canvas 2D renderer with DPR scaling and dark/light themes
+- Pan, zoom (mouse wheel + pinch), pointer capture, and touch support
+- R-tree spatial indexing (rbush) for entity selection and hit-testing
+- Measurement tool that snaps to endpoints, midpoints, and centers
+- Layer visibility toggle and color overrides
+- Full ACI color table (256 colors), swaps color 7 for dark/light themes
+- Block INSERT rendering, including nested blocks and MINSERT grids
+- DWG file support via `@cadview/dwg`, LibreDWG compiled to WebAssembly
+- React, Svelte 5, and Vue 3 wrappers
+- No framework dependencies in the core package
+- Written in TypeScript with full type definitions
 
 ## Packages
 
