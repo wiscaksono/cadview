@@ -11,7 +11,7 @@ import { EventEmitter } from './events.js';
 import { InputHandler } from './input-handler.js';
 import { SpatialIndex, hitTest } from './selection.js';
 import { MeasureTool, findSnaps, renderMeasureOverlay } from './measure.js';
-import { computeEntitiesBounds } from '../utils/bbox.js';
+import { computeEntitiesBounds, buildBlockEntityBBoxCache, setBlockEntityBBoxCache, clearBlockEntityBBoxCache } from '../utils/bbox.js';
 import { renderDebugOverlay, resolveDebugOptions } from '../renderer/debug-overlay.js';
 export type { DebugOptions, DebugStats, RenderStats } from '../renderer/debug-overlay.js';
 
@@ -283,6 +283,7 @@ export class CadViewer {
     this.doc = null;
     this.selectedEntityIndex = -1;
     this.spatialIndex.clear();
+    clearBlockEntityBBoxCache();
     this.layerManager.clear();
     this.measureTool.deactivate();
     this.requestRender();
@@ -294,9 +295,10 @@ export class CadViewer {
     // Initialize layers
     this.layerManager.setLayers(this.doc.layers);
 
-    // Build spatial index (timed for debug stats)
+    // Build spatial index and block entity bbox cache (timed for debug stats)
     const t0 = performance.now();
-    this.spatialIndex.build(this.doc.entities);
+    this.spatialIndex.build(this.doc.entities, this.doc);
+    setBlockEntityBBoxCache(buildBlockEntityBBoxCache(this.doc));
     this.spatialIndexBuildTime = performance.now() - t0;
 
     // Reset selection and measurement
@@ -468,6 +470,7 @@ export class CadViewer {
     this.renderer.destroy();
     this.emitter.removeAllListeners();
     this.spatialIndex.clear();
+    clearBlockEntityBBoxCache();
     this.layerManager.clear();
     this.doc = null;
   }
@@ -498,13 +501,26 @@ export class CadViewer {
       return;
     }
 
+    // Viewport frustum culling: query spatial index for visible entities
+    const vt = this.camera.getTransform();
+    const w = this.renderer.getWidth();
+    const h = this.renderer.getHeight();
+    const vb = this.computeViewportBounds(vt, w, h);
+    const hits = this.spatialIndex.search(vb.minX, vb.minY, vb.maxX, vb.maxY);
+    const visibleIndices = new Set<number>();
+    for (let i = 0; i < hits.length; i++) {
+      visibleIndices.add(hits[i]!.entityIndex);
+    }
+
     const renderStart = performance.now();
     const stats = this.renderer.render(
       this.doc,
-      this.camera.getTransform(),
+      vt,
       this.options.theme,
       this.layerManager.getVisibleLayerNames(),
       this.selectedEntityIndex,
+      visibleIndices,
+      this.spatialIndex.getEntityBBoxes(),
     );
     this.lastFrameTime = performance.now() - renderStart;
     this.lastRenderStats = stats;

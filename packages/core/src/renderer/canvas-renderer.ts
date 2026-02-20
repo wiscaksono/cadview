@@ -2,13 +2,18 @@ import type { DxfDocument } from '../parser/types.js';
 import type { ViewTransform } from './camera.js';
 import type { Theme } from './theme.js';
 import type { RenderStats } from './debug-overlay.js';
+import type { BBox } from '../utils/bbox.js';
 import { THEMES } from './theme.js';
 import { applyTransform } from './camera.js';
 import { resolveEntityColor } from './resolve-color.js';
 import { drawEntity } from './entities/index.js';
+import { isBatchableStroke, appendStrokePath } from './entities/batch-path.js';
 
 // Re-export for convenience
 export { resolveEntityColor } from './resolve-color.js';
+
+/** Minimum screen-space extent (in pixels) for an entity to be rendered. */
+const MIN_SCREEN_EXTENT = 0.5;
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -55,6 +60,8 @@ export class CanvasRenderer {
     theme: Theme,
     visibleLayers: Set<string>,
     selectedEntityIndex: number,
+    visibleEntityIndices?: Set<number>,
+    entityBBoxes?: (BBox | null)[],
   ): RenderStats {
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
@@ -81,7 +88,11 @@ export class CanvasRenderer {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // 5. Render entities
+    // 5. Render entities with path batching
+    // Consecutive stroke-only entities sharing the same color are batched into
+    // a single beginPath()/stroke() pair, reducing GPU rasterization calls.
+    let batchColor: string | null = null;
+
     for (let i = 0; i < doc.entities.length; i++) {
       const entity = doc.entities[i]!;
 
@@ -97,17 +108,65 @@ export class CanvasRenderer {
         continue;
       }
 
+      // Viewport frustum culling: skip entities not in the visible set
+      if (visibleEntityIndices && !visibleEntityIndices.has(i)) {
+        stats.entitiesSkipped++;
+        continue;
+      }
+
+      // Sub-pixel culling: skip entities smaller than MIN_SCREEN_EXTENT pixels
+      if (entityBBoxes) {
+        const bbox = entityBBoxes[i];
+        if (bbox) {
+          const screenW = (bbox.maxX - bbox.minX) * vt.scale;
+          const screenH = (bbox.maxY - bbox.minY) * vt.scale;
+          if (Math.max(screenW, screenH) < MIN_SCREEN_EXTENT) {
+            stats.entitiesSkipped++;
+            continue;
+          }
+        }
+      }
+
       // Resolve color
       const color = resolveEntityColor(entity, doc.layers, theme);
 
-      // Set stroke/fill
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = pixelSize; // 1px constant screen width
+      if (isBatchableStroke(entity.type)) {
+        // Batchable stroke-only entity: append to current batch or start new one
+        if (color !== batchColor) {
+          // Flush previous batch
+          if (batchColor !== null) {
+            ctx.stroke();
+            stats.drawCalls++;
+          }
+          // Start new batch
+          batchColor = color;
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = pixelSize;
+        }
+        appendStrokePath(ctx, entity, pixelSize);
+        stats.entitiesDrawn++;
+        stats.byType[entity.type] = (stats.byType[entity.type] ?? 0) + 1;
+      } else {
+        // Non-batchable entity: flush any open batch first
+        if (batchColor !== null) {
+          ctx.stroke();
+          stats.drawCalls++;
+          batchColor = null;
+        }
+        // Set color and draw normally
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = pixelSize;
+        stats.entitiesDrawn++;
+        drawEntity(ctx, entity, doc, vt, theme, pixelSize, stats);
+      }
+    }
 
-      // Draw entity
-      stats.entitiesDrawn++;
-      drawEntity(ctx, entity, doc, vt, theme, pixelSize, stats);
+    // Flush final batch
+    if (batchColor !== null) {
+      ctx.stroke();
+      stats.drawCalls++;
     }
 
     // 6. Draw selection highlight (not counted in stats)

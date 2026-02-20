@@ -21,7 +21,7 @@ function mapCADFont(styleName: string): string {
 }
 
 export function drawText(ctx: CanvasRenderingContext2D, entity: DxfTextEntity, pixelSize: number): void {
-  if (!entity.text || entity.height < pixelSize * 3) return; // skip tiny text
+  if (!entity.text || entity.height < pixelSize * 4) return; // skip unreadable text (< 4px)
 
   // Determine insertion point
   const useAlignPoint = entity.hAlign !== 0 || entity.vAlign !== 0;
@@ -106,7 +106,7 @@ function stripMTextFormatting(text: string): string {
 }
 
 export function drawMText(ctx: CanvasRenderingContext2D, entity: DxfMTextEntity, pixelSize: number): void {
-  if (!entity.text || entity.height < pixelSize * 3) return;
+  if (!entity.text || entity.height < pixelSize * 4) return; // skip unreadable text (< 4px)
 
   ctx.save();
   ctx.translate(entity.insertionPoint.x, entity.insertionPoint.y);

@@ -10,3 +10,4 @@ export { drawInsert } from './draw-insert.js';
 export { drawDimension } from './draw-dimension.js';
 export { drawHatch } from './draw-hatch.js';
 export { drawPoint } from './draw-point.js';
+export { isBatchableStroke, appendStrokePath } from './batch-path.js';
