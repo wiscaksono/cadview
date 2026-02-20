@@ -106,16 +106,14 @@ export const CadViewer = defineComponent({
       },
     );
 
-    let loadCancelled = false;
+    let loadGeneration = 0;
 
     watch(
       () => props.file,
       async (newFile) => {
         const viewer = viewerRef.value;
         if (!viewer || !newFile) return;
-        loadCancelled = true;  // cancel any in-flight load
-        loadCancelled = false;
-        const wasCancelled = () => loadCancelled;
+        const generation = ++loadGeneration;
 
         try {
           if (newFile instanceof File) {
@@ -126,11 +124,11 @@ export const CadViewer = defineComponent({
             viewer.loadString(newFile);
           }
 
-          if (!wasCancelled()) {
+          if (generation === loadGeneration) {
             emit('layers-loaded', viewer.getLayers() as DxfLayer[]);
           }
         } catch (err) {
-          if (!wasCancelled()) {
+          if (generation === loadGeneration) {
             console.error('CadViewer: failed to load file', err);
           }
         }

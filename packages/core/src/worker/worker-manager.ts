@@ -23,9 +23,17 @@ export class WorkerManager {
 
   /**
    * Lazily create the Worker from the inlined code.
+   * Safe to call after `terminate()` or `onerror` — recreates automatically.
    */
   private getWorker(): Worker {
     if (this.worker) return this.worker;
+
+    if (typeof __WORKER_CODE__ !== 'string' || !__WORKER_CODE__) {
+      throw new Error(
+        'CadViewer: worker code not available. ' +
+        'Ensure you are importing from the built package, not source files directly.',
+      );
+    }
 
     this.blobUrl = URL.createObjectURL(
       new Blob([__WORKER_CODE__], { type: 'text/javascript' }),
@@ -54,6 +62,9 @@ export class WorkerManager {
         req.reject(err);
       }
       this.pending.clear();
+
+      // Terminate the broken Worker so getWorker() recreates on next parse()
+      this.destroyWorker();
     };
 
     return this.worker;
@@ -70,22 +81,50 @@ export class WorkerManager {
       const id = this.nextId++;
       this.pending.set(id, { resolve, reject });
 
-      const worker = this.getWorker();
+      let worker: Worker;
+      try {
+        worker = this.getWorker();
+      } catch (err) {
+        this.pending.delete(id);
+        reject(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
+
       const msg = { type: 'parse', id, payload: input };
 
-      if (input instanceof ArrayBuffer) {
-        worker.postMessage(msg, [input]);
-      } else {
-        worker.postMessage(msg);
+      try {
+        if (input instanceof ArrayBuffer) {
+          worker.postMessage(msg, [input]);
+        } else {
+          worker.postMessage(msg);
+        }
+      } catch (err) {
+        this.pending.delete(id);
+        reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
   }
 
   /**
    * Terminate the Worker and release the Blob URL.
-   * Rejects all pending requests.
+   * Rejects all pending requests. Safe to call multiple times.
    */
   terminate(): void {
+    this.destroyWorker();
+
+    // Reject pending requests
+    const err = new Error('Worker terminated');
+    for (const [, req] of this.pending) {
+      req.reject(err);
+    }
+    this.pending.clear();
+  }
+
+  /**
+   * Destroy the Worker instance and revoke the Blob URL.
+   * Does not reject pending requests — used by both `terminate()` and `onerror`.
+   */
+  private destroyWorker(): void {
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;
@@ -94,13 +133,6 @@ export class WorkerManager {
       URL.revokeObjectURL(this.blobUrl);
       this.blobUrl = null;
     }
-
-    // Reject pending requests
-    const err = new Error('Worker terminated');
-    for (const [, req] of this.pending) {
-      req.reject(err);
-    }
-    this.pending.clear();
   }
 
   /**

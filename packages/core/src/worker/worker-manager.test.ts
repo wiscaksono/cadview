@@ -256,6 +256,95 @@ describe('WorkerManager', () => {
 
       manager.terminate();
     });
+
+    it('recreates Worker after onerror and subsequent parse succeeds', async () => {
+      const manager = new WorkerManager();
+
+      // First parse — Worker will crash
+      const promise1 = manager.parse('a');
+      expect(mockWorkerInstances).toHaveLength(1);
+      const brokenWorker = mockWorkerInstances[0]!;
+      brokenWorker._simulateError('Worker crashed');
+      await expect(promise1).rejects.toThrow('Worker crashed');
+
+      // Broken Worker should have been terminated
+      expect(brokenWorker.terminate).toHaveBeenCalled();
+
+      // Second parse — should create a new Worker
+      const promise2 = manager.parse('b');
+      expect(mockWorkerInstances).toHaveLength(2);
+      const newWorker = mockWorkerInstances[1]!;
+
+      // New Worker responds successfully
+      const call = newWorker.postMessage.mock.calls[0]!;
+      newWorker._simulateMessage({
+        type: 'result',
+        id: call[0].id,
+        doc: {
+          header: {},
+          layers: new Map(),
+          lineTypes: new Map(),
+          styles: new Map(),
+          blocks: new Map(),
+          entities: [],
+        },
+      });
+
+      const result = await promise2;
+      expect(result).toBeDefined();
+      expect(result.layers).toBeInstanceOf(Map);
+
+      manager.terminate();
+    });
+
+    it('rejects and cleans up when postMessage throws', async () => {
+      const manager = new WorkerManager();
+
+      // First call creates the Worker normally (id=1)
+      const setupPromise = manager.parse('setup');
+      const worker = mockWorkerInstances[0]!;
+
+      worker._simulateMessage({
+        type: 'result',
+        id: 1,
+        doc: {
+          header: {},
+          layers: new Map(),
+          lineTypes: new Map(),
+          styles: new Map(),
+          blocks: new Map(),
+          entities: [],
+        },
+      });
+      await setupPromise;
+
+      // Now make postMessage throw on next call (id=2)
+      worker.postMessage.mockImplementationOnce(() => {
+        throw new Error('DataCloneError: failed to serialize');
+      });
+
+      const failPromise = manager.parse('will-fail');
+      await expect(failPromise).rejects.toThrow('DataCloneError: failed to serialize');
+
+      // Subsequent parse should work (id=3) — postMessage restored
+      const recoveryPromise = manager.parse('recovery');
+      worker._simulateMessage({
+        type: 'result',
+        id: 3,
+        doc: {
+          header: {},
+          layers: new Map(),
+          lineTypes: new Map(),
+          styles: new Map(),
+          blocks: new Map(),
+          entities: [],
+        },
+      });
+      const result = await recoveryPromise;
+      expect(result).toBeDefined();
+
+      manager.terminate();
+    });
   });
 
   // ----------------------------------------------------------
@@ -360,6 +449,78 @@ describe('WorkerManager', () => {
       const manager = new WorkerManager();
       manager.terminate(); // No Worker was created
       expect(mockWorkerInstances).toHaveLength(0);
+    });
+
+    it('parse() after terminate() creates a new Worker', async () => {
+      const manager = new WorkerManager();
+
+      // First parse — creates Worker
+      const promise1 = manager.parse('first').catch(() => {});
+      expect(mockWorkerInstances).toHaveLength(1);
+      manager.terminate();
+      expect(mockWorkerInstances[0]!.terminate).toHaveBeenCalled();
+
+      // Second parse after terminate — should create a new Worker
+      const promise2 = manager.parse('second');
+      expect(mockWorkerInstances).toHaveLength(2);
+
+      const newWorker = mockWorkerInstances[1]!;
+      const call = newWorker.postMessage.mock.calls[0]!;
+      newWorker._simulateMessage({
+        type: 'result',
+        id: call[0].id,
+        doc: {
+          header: {},
+          layers: new Map(),
+          lineTypes: new Map(),
+          styles: new Map(),
+          blocks: new Map(),
+          entities: [],
+        },
+      });
+
+      const result = await promise2;
+      expect(result).toBeDefined();
+
+      manager.terminate();
+    });
+  });
+
+  // ----------------------------------------------------------
+  // Ignores unknown messages
+  // ----------------------------------------------------------
+
+  // ----------------------------------------------------------
+  // __WORKER_CODE__ guard
+  // ----------------------------------------------------------
+
+  describe('__WORKER_CODE__ guard', () => {
+    it('throws if __WORKER_CODE__ is not a string', async () => {
+      const original = (globalThis as any).__WORKER_CODE__;
+      (globalThis as any).__WORKER_CODE__ = undefined;
+
+      try {
+        const manager = new WorkerManager();
+        await expect(manager.parse('test')).rejects.toThrow(
+          'worker code not available',
+        );
+      } finally {
+        (globalThis as any).__WORKER_CODE__ = original;
+      }
+    });
+
+    it('throws if __WORKER_CODE__ is empty string', async () => {
+      const original = (globalThis as any).__WORKER_CODE__;
+      (globalThis as any).__WORKER_CODE__ = '';
+
+      try {
+        const manager = new WorkerManager();
+        await expect(manager.parse('test')).rejects.toThrow(
+          'worker code not available',
+        );
+      } finally {
+        (globalThis as any).__WORKER_CODE__ = original;
+      }
     });
   });
 

@@ -1199,5 +1199,28 @@ describe('CadViewer', () => {
 
       viewer.destroy();
     });
+
+    it('worker parse error propagates to loadBuffer caller', async () => {
+      const canvas = createMockCanvas();
+      const viewer = new CadViewer(canvas, { worker: true });
+
+      const loadPromise = viewer.loadBuffer(strToBuffer(MINIMAL_DXF));
+      await new Promise((r) => { setTimeout(r, 0); });
+
+      const worker = mockWorkerInstances[0]!;
+      const call = worker.postMessage.mock.calls[0]!;
+
+      // Worker responds with a parse error
+      worker._simulateMessage({
+        type: 'error',
+        id: call[0].id,
+        message: 'Failed to parse DXF sections.',
+      });
+
+      await expect(loadPromise).rejects.toThrow('Failed to parse DXF sections.');
+
+      expect(viewer.getDocument()).toBeNull();
+      viewer.destroy();
+    });
   });
 });
