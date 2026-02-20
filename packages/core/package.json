@@ -1,6 +1,6 @@
 {
   "name": "@cadview/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "license": "MIT",
   "description": "Framework-agnostic CAD file viewer engine with DXF parser and Canvas 2D renderer",

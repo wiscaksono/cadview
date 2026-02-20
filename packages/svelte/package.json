@@ -1,6 +1,6 @@
 {
   "name": "@cadview/svelte",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "license": "MIT",
   "description": "Svelte 5 wrapper for @cadview/core — CAD/DXF file viewer component",
