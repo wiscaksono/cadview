@@ -1,8 +1,12 @@
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import adapter from '@sveltejs/adapter-vercel';
 import { mdsvex } from 'mdsvex';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { createHighlighter } from 'shiki';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Lazy singleton highlighter matching the @cadview design system
 let highlighterInstance = null;
@@ -48,11 +52,7 @@ async function getHighlighter() {
 							settings: { foreground: '#c4b5fd' }
 						},
 						{
-							scope: [
-								'entity.name.tag',
-								'support.class.component',
-								'punctuation.definition.tag'
-							],
+							scope: ['entity.name.tag', 'support.class.component', 'punctuation.definition.tag'],
 							settings: { foreground: '#f472b6' }
 						},
 						{
@@ -103,6 +103,7 @@ async function getHighlighter() {
 /** @type {import('mdsvex').MdsvexOptions} */
 const mdsvexOptions = {
 	extensions: ['.md'],
+	layout: join(__dirname, 'src/lib/layouts/docs.svelte'),
 	highlight: {
 		highlighter: async (code, lang) => {
 			const hl = await getHighlighter();

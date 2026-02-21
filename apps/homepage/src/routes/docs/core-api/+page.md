@@ -1,5 +1,6 @@
 ---
 title: CadViewer
+description: CadViewer class API reference. Manages canvas setup, file loading, rendering, interaction, and cleanup.
 ---
 
 # Core API &mdash; CadViewer
@@ -18,18 +19,18 @@ const viewer = new CadViewer(canvas: HTMLCanvasElement, options?: CadViewerOptio
 
 ### CadViewerOptions
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `theme` | `'dark' \| 'light'` | `'dark'` | Color theme |
-| `backgroundColor` | `string` | &mdash; | Override theme background color |
-| `antialias` | `boolean` | `true` | Enable canvas anti-aliasing |
-| `minZoom` | `number` | `0.0001` | Minimum zoom scale |
-| `maxZoom` | `number` | `100000` | Maximum zoom scale |
-| `zoomSpeed` | `number` | `1.1` | Zoom factor per scroll step |
-| `initialTool` | `Tool` | `'pan'` | Active tool on initialization |
-| `formatConverters` | `FormatConverter[]` | `[]` | Format converters (e.g., DWG) |
-| `debug` | `boolean \| DebugOptions` | `false` | Enable debug overlay |
-| `worker` | `boolean` | `false` | Parse DXF in a Web Worker |
+| Property           | Type                      | Default  | Description                     |
+| ------------------ | ------------------------- | -------- | ------------------------------- |
+| `theme`            | `'dark' \| 'light'`       | `'dark'` | Color theme                     |
+| `backgroundColor`  | `string`                  | &mdash;  | Override theme background color |
+| `antialias`        | `boolean`                 | `true`   | Enable canvas anti-aliasing     |
+| `minZoom`          | `number`                  | `0.0001` | Minimum zoom scale              |
+| `maxZoom`          | `number`                  | `100000` | Maximum zoom scale              |
+| `zoomSpeed`        | `number`                  | `1.1`    | Zoom factor per scroll step     |
+| `initialTool`      | `Tool`                    | `'pan'`  | Active tool on initialization   |
+| `formatConverters` | `FormatConverter[]`       | `[]`     | Format converters (e.g., DWG)   |
+| `debug`            | `boolean \| DebugOptions` | `false`  | Enable debug overlay            |
+| `worker`           | `boolean`                 | `false`  | Parse DXF in a Web Worker       |
 
 ## Loading Files
 
@@ -221,12 +222,12 @@ Enable or disable the debug overlay. Pass `true` for defaults, `false` to disabl
 
 ```typescript
 viewer.setDebug({
-  showFps: true,
-  showRenderStats: true,
-  showDocumentInfo: true,
-  showTimings: true,
-  showCamera: true,
-  position: 'top-left',
+	showFps: true,
+	showRenderStats: true,
+	showDocumentInfo: true,
+	showTimings: true,
+	showCamera: true,
+	position: 'top-left'
 });
 ```
 

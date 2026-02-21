@@ -1,5 +1,6 @@
 ---
 title: Introduction
+description: Zero-dependency CAD file viewer for the browser. Parses DXF files, renders on Canvas 2D, with pan, select, and measure tools.
 ---
 
 # @cadview Documentation
@@ -12,13 +13,13 @@ title: Introduction
 
 The library is split into focused packages that you compose together:
 
-| Package | Description | License |
-|---------|-------------|---------|
-| `@cadview/core` | Parser, renderer, and viewer engine | MIT |
-| `@cadview/react` | React 18/19 component & hook | MIT |
-| `@cadview/svelte` | Svelte 5 component | MIT |
-| `@cadview/vue` | Vue 3 component & composable | MIT |
-| `@cadview/dwg` | DWG file support via LibreDWG WASM | GPL-3.0 |
+| Package           | Description                         | License |
+| ----------------- | ----------------------------------- | ------- |
+| `@cadview/core`   | Parser, renderer, and viewer engine | MIT     |
+| `@cadview/react`  | React 18/19 component & hook        | MIT     |
+| `@cadview/svelte` | Svelte 5 component                  | MIT     |
+| `@cadview/vue`    | Vue 3 component & composable        | MIT     |
+| `@cadview/dwg`    | DWG file support via LibreDWG WASM  | GPL-3.0 |
 
 The core package has only one runtime dependency ([rbush](https://github.com/mourner/rbush) for spatial indexing). Framework wrappers are thin bindings with zero additional dependencies.
 

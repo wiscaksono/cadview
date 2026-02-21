@@ -1,5 +1,6 @@
 ---
 title: Getting Started
+description: Install @cadview and render your first DXF file. Setup guide for Node.js with npm, pnpm, or yarn.
 ---
 
 # Getting Started
@@ -46,18 +47,18 @@ import { CadViewer } from '@cadview/core';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#cad-canvas');
 const viewer = new CadViewer(canvas, {
-  theme: 'dark',
-  initialTool: 'pan',
+	theme: 'dark',
+	initialTool: 'pan'
 });
 
 // Load a DXF file from a File input
 const input = document.querySelector<HTMLInputElement>('#file-input');
 input.addEventListener('change', async () => {
-  const file = input.files?.[0];
-  if (file) {
-    await viewer.loadFile(file);
-    viewer.fitToView();
-  }
+	const file = input.files?.[0];
+	if (file) {
+		await viewer.loadFile(file);
+		viewer.fitToView();
+	}
 });
 ```
 
@@ -75,23 +76,14 @@ import { useState } from 'react';
 import { CadViewer } from '@cadview/react';
 
 export default function App() {
-  const [file, setFile] = useState<File | null>(null);
+	const [file, setFile] = useState<File | null>(null);
 
-  return (
-    <div>
-      <input
-        type="file"
-        accept=".dxf"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-      />
-      <CadViewer
-        file={file}
-        theme="dark"
-        tool="pan"
-        style={{ width: '100%', height: '500px' }}
-      />
-    </div>
-  );
+	return (
+		<div>
+			<input type="file" accept=".dxf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+			<CadViewer file={file} theme="dark" tool="pan" style={{ width: '100%', height: '500px' }} />
+		</div>
+	);
 }
 ```
 
@@ -99,21 +91,24 @@ export default function App() {
 
 ```svelte
 <script lang="ts">
-  import { CadViewer } from '@cadview/svelte';
+	import { CadViewer } from '@cadview/svelte';
 
-  let file = $state<File | null>(null);
+	let file = $state<File | null>(null);
 
-  function onFileChange(e: Event) {
-    const input = e.target as HTMLInputElement;
-    file = input.files?.[0] ?? null;
-  }
+	function onFileChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		file = input.files?.[0] ?? null;
+	}
 </script>
 
 <input type="file" accept=".dxf" onchange={onFileChange} />
 <CadViewer {file} theme="dark" tool="pan" class="viewer" />
 
 <style>
-  .viewer { width: 100%; height: 500px; }
+	.viewer {
+		width: 100%;
+		height: 500px;
+	}
 </style>
 ```
 
@@ -121,8 +116,8 @@ export default function App() {
 
 ```vue
 <template>
-  <input type="file" accept=".dxf" @change="onFileChange" />
-  <CadViewer :file="file" theme="dark" tool="pan" class="viewer" />
+	<input type="file" accept=".dxf" @change="onFileChange" />
+	<CadViewer :file="file" theme="dark" tool="pan" class="viewer" />
 </template>
 
 <script setup lang="ts">
@@ -132,13 +127,16 @@ import { CadViewer } from '@cadview/vue';
 const file = ref<File | null>(null);
 
 function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement;
-  file.value = input.files?.[0] ?? null;
+	const input = e.target as HTMLInputElement;
+	file.value = input.files?.[0] ?? null;
 }
 </script>
 
 <style scoped>
-.viewer { width: 100%; height: 500px; }
+.viewer {
+	width: 100%;
+	height: 500px;
+}
 </style>
 ```
 
@@ -151,7 +149,7 @@ import { CadViewer } from '@cadview/core';
 import { dwgConverter } from '@cadview/dwg';
 
 const viewer = new CadViewer(canvas, {
-  formatConverters: [dwgConverter],
+	formatConverters: [dwgConverter]
 });
 ```
 

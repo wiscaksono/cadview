@@ -1,5 +1,6 @@
 ---
 title: Types
+description: Complete TypeScript type reference for @cadview/core. All types exported and re-exported by framework wrappers.
 ---
 
 # TypeScript Types
@@ -18,8 +19,8 @@ import type { DxfDocument, DxfEntity, DxfLayer, Tool, Theme } from '@cadview/cor
 
 ```typescript
 interface Point2D {
-  x: number;
-  y: number;
+	x: number;
+	y: number;
 }
 ```
 
@@ -27,9 +28,9 @@ interface Point2D {
 
 ```typescript
 interface Point3D {
-  x: number;
-  y: number;
-  z: number;
+	x: number;
+	y: number;
+	z: number;
 }
 ```
 
@@ -49,12 +50,12 @@ type Theme = 'dark' | 'light';
 
 ```typescript
 interface ThemeConfig {
-  backgroundColor: string;
-  defaultEntityColor: string;
-  selectionColor: string;
-  measureColor: string;
-  gridColor: string;
-  crosshairColor: string;
+	backgroundColor: string;
+	defaultEntityColor: string;
+	selectionColor: string;
+	measureColor: string;
+	gridColor: string;
+	crosshairColor: string;
 }
 ```
 
@@ -62,9 +63,9 @@ interface ThemeConfig {
 
 ```typescript
 interface ViewTransform {
-  scale: number;
-  offsetX: number;
-  offsetY: number;
+	scale: number;
+	offsetX: number;
+	offsetY: number;
 }
 ```
 
@@ -72,10 +73,10 @@ interface ViewTransform {
 
 ```typescript
 interface BBox {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
+	minX: number;
+	minY: number;
+	maxX: number;
+	maxY: number;
 }
 ```
 
@@ -87,12 +88,12 @@ The root data structure returned by `parseDxf()`.
 
 ```typescript
 interface DxfDocument {
-  header: DxfHeader;
-  layers: Map<string, DxfLayer>;
-  lineTypes: Map<string, DxfLineType>;
-  styles: Map<string, DxfStyle>;
-  blocks: Map<string, DxfBlock>;
-  entities: DxfEntity[];
+	header: DxfHeader;
+	layers: Map<string, DxfLayer>;
+	lineTypes: Map<string, DxfLineType>;
+	styles: Map<string, DxfStyle>;
+	blocks: Map<string, DxfBlock>;
+	entities: DxfEntity[];
 }
 ```
 
@@ -100,15 +101,15 @@ interface DxfDocument {
 
 ```typescript
 interface DxfHeader {
-  acadVersion: string;          // e.g., "AC1027"
-  extMin?: Point3D;             // Drawing extents minimum
-  extMax?: Point3D;             // Drawing extents maximum
-  insUnits: number;             // Insert units (0=unitless, 1=inches, 4=mm, ...)
-  measurement: number;          // 0=English, 1=Metric
-  ltScale: number;              // Global linetype scale
-  dwgCodePage?: string;         // Encoding codepage for pre-R2007 files
-  handleSeed?: string;          // Next available handle
-  [key: string]: unknown;       // Additional header variables
+	acadVersion: string; // e.g., "AC1027"
+	extMin?: Point3D; // Drawing extents minimum
+	extMax?: Point3D; // Drawing extents maximum
+	insUnits: number; // Insert units (0=unitless, 1=inches, 4=mm, ...)
+	measurement: number; // 0=English, 1=Metric
+	ltScale: number; // Global linetype scale
+	dwgCodePage?: string; // Encoding codepage for pre-R2007 files
+	handleSeed?: string; // Next available handle
+	[key: string]: unknown; // Additional header variables
 }
 ```
 
@@ -116,15 +117,15 @@ interface DxfHeader {
 
 ```typescript
 interface DxfLayer {
-  name: string;
-  color: number;        // ACI color index (1-255)
-  lineType: string;
-  flags: number;
-  lineWeight: number;
-  trueColor?: number;   // 24-bit RGB packed integer
-  isOff: boolean;        // Layer is off (not rendered)
-  isFrozen: boolean;     // Layer is frozen
-  isLocked: boolean;     // Layer is locked
+	name: string;
+	color: number; // ACI color index (1-255)
+	lineType: string;
+	flags: number;
+	lineWeight: number;
+	trueColor?: number; // 24-bit RGB packed integer
+	isOff: boolean; // Layer is off (not rendered)
+	isFrozen: boolean; // Layer is frozen
+	isLocked: boolean; // Layer is locked
 }
 ```
 
@@ -132,10 +133,10 @@ interface DxfLayer {
 
 ```typescript
 interface DxfLineType {
-  name: string;
-  description: string;
-  pattern: number[];      // Dash-gap pattern
-  totalLength: number;
+	name: string;
+	description: string;
+	pattern: number[]; // Dash-gap pattern
+	totalLength: number;
 }
 ```
 
@@ -143,12 +144,12 @@ interface DxfLineType {
 
 ```typescript
 interface DxfStyle {
-  name: string;
-  fontName: string;
-  bigFontName: string;
-  height: number;
-  widthFactor: number;
-  obliqueAngle: number;
+	name: string;
+	fontName: string;
+	bigFontName: string;
+	height: number;
+	widthFactor: number;
+	obliqueAngle: number;
 }
 ```
 
@@ -156,10 +157,10 @@ interface DxfStyle {
 
 ```typescript
 interface DxfBlock {
-  name: string;
-  basePoint: Point3D;
-  entities: DxfEntity[];
-  flags: number;
+	name: string;
+	basePoint: Point3D;
+	entities: DxfEntity[];
+	flags: number;
 }
 ```
 
@@ -169,16 +170,16 @@ All entities extend `DxfEntityBase`:
 
 ```typescript
 interface DxfEntityBase {
-  type: string;
-  handle?: string;
-  layer: string;
-  color: number;            // ACI color (0=BYBLOCK, 256=BYLAYER, 1-255=direct)
-  trueColor?: number;       // 24-bit RGB packed integer
-  lineType: string;
-  lineTypeScale: number;
-  lineWeight: number;
-  visible: boolean;
-  extrusion: Point3D;       // OCS normal vector
+	type: string;
+	handle?: string;
+	layer: string;
+	color: number; // ACI color (0=BYBLOCK, 256=BYLAYER, 1-255=direct)
+	trueColor?: number; // 24-bit RGB packed integer
+	lineType: string;
+	lineTypeScale: number;
+	lineWeight: number;
+	visible: boolean;
+	extrusion: Point3D; // OCS normal vector
 }
 ```
 
@@ -186,26 +187,26 @@ interface DxfEntityBase {
 
 ```typescript
 type DxfEntity =
-  | DxfLineEntity
-  | DxfCircleEntity
-  | DxfArcEntity
-  | DxfLwPolylineEntity
-  | DxfPolylineEntity
-  | DxfEllipseEntity
-  | DxfSplineEntity
-  | DxfTextEntity
-  | DxfMTextEntity
-  | DxfInsertEntity
-  | DxfDimensionEntity
-  | DxfHatchEntity
-  | DxfPointEntity;
+	| DxfLineEntity
+	| DxfCircleEntity
+	| DxfArcEntity
+	| DxfLwPolylineEntity
+	| DxfPolylineEntity
+	| DxfEllipseEntity
+	| DxfSplineEntity
+	| DxfTextEntity
+	| DxfMTextEntity
+	| DxfInsertEntity
+	| DxfDimensionEntity
+	| DxfHatchEntity
+	| DxfPointEntity;
 ```
 
 You can use the `type` discriminant for type narrowing:
 
 ```typescript
 if (entity.type === 'CIRCLE') {
-  console.log(entity.radius);  // TypeScript knows this is DxfCircleEntity
+	console.log(entity.radius); // TypeScript knows this is DxfCircleEntity
 }
 ```
 
@@ -213,37 +214,37 @@ if (entity.type === 'CIRCLE') {
 
 ```typescript
 interface DxfLineEntity extends DxfEntityBase {
-  type: 'LINE';
-  start: Point3D;
-  end: Point3D;
+	type: 'LINE';
+	start: Point3D;
+	end: Point3D;
 }
 
 interface DxfCircleEntity extends DxfEntityBase {
-  type: 'CIRCLE';
-  center: Point3D;
-  radius: number;
+	type: 'CIRCLE';
+	center: Point3D;
+	radius: number;
 }
 
 interface DxfArcEntity extends DxfEntityBase {
-  type: 'ARC';
-  center: Point3D;
-  radius: number;
-  startAngle: number;   // Degrees
-  endAngle: number;     // Degrees
+	type: 'ARC';
+	center: Point3D;
+	radius: number;
+	startAngle: number; // Degrees
+	endAngle: number; // Degrees
 }
 
 interface DxfEllipseEntity extends DxfEntityBase {
-  type: 'ELLIPSE';
-  center: Point3D;
-  majorAxis: Point3D;     // Endpoint of major axis relative to center
-  minorRatio: number;     // Ratio of minor to major axis (0-1)
-  startParam: number;     // Start parameter (radians)
-  endParam: number;       // End parameter (radians)
+	type: 'ELLIPSE';
+	center: Point3D;
+	majorAxis: Point3D; // Endpoint of major axis relative to center
+	minorRatio: number; // Ratio of minor to major axis (0-1)
+	startParam: number; // Start parameter (radians)
+	endParam: number; // End parameter (radians)
 }
 
 interface DxfPointEntity extends DxfEntityBase {
-  type: 'POINT';
-  position: Point3D;
+	type: 'POINT';
+	position: Point3D;
 }
 ```
 
@@ -251,26 +252,26 @@ interface DxfPointEntity extends DxfEntityBase {
 
 ```typescript
 interface DxfLwPolylineVertex {
-  x: number;
-  y: number;
-  bulge: number;          // Arc bulge factor (0 = straight segment)
-  startWidth: number;
-  endWidth: number;
+	x: number;
+	y: number;
+	bulge: number; // Arc bulge factor (0 = straight segment)
+	startWidth: number;
+	endWidth: number;
 }
 
 interface DxfLwPolylineEntity extends DxfEntityBase {
-  type: 'LWPOLYLINE';
-  vertices: DxfLwPolylineVertex[];
-  closed: boolean;
-  constantWidth: number;
-  elevation: number;
+	type: 'LWPOLYLINE';
+	vertices: DxfLwPolylineVertex[];
+	closed: boolean;
+	constantWidth: number;
+	elevation: number;
 }
 
 interface DxfPolylineEntity extends DxfEntityBase {
-  type: 'POLYLINE';
-  vertices: DxfLwPolylineVertex[];
-  closed: boolean;
-  is3d: boolean;
+	type: 'POLYLINE';
+	vertices: DxfLwPolylineVertex[];
+	closed: boolean;
+	is3d: boolean;
 }
 ```
 
@@ -278,15 +279,15 @@ interface DxfPolylineEntity extends DxfEntityBase {
 
 ```typescript
 interface DxfSplineEntity extends DxfEntityBase {
-  type: 'SPLINE';
-  degree: number;
-  flags: number;
-  knots: number[];
-  controlPoints: Point3D[];
-  fitPoints: Point3D[];
-  weights: number[];
-  startTangent?: Point3D;
-  endTangent?: Point3D;
+	type: 'SPLINE';
+	degree: number;
+	flags: number;
+	knots: number[];
+	controlPoints: Point3D[];
+	fitPoints: Point3D[];
+	weights: number[];
+	startTangent?: Point3D;
+	endTangent?: Point3D;
 }
 ```
 
@@ -294,37 +295,37 @@ interface DxfSplineEntity extends DxfEntityBase {
 
 ```typescript
 interface DxfTextEntity extends DxfEntityBase {
-  type: 'TEXT';
-  text: string;
-  insertionPoint: Point3D;
-  alignmentPoint?: Point3D;
-  height: number;
-  rotation: number;        // Degrees
-  widthFactor: number;
-  obliqueAngle: number;
-  style: string;
-  hAlign: number;          // Horizontal alignment (0-5)
-  vAlign: number;          // Vertical alignment (0-3)
-  generationFlags: number;
+	type: 'TEXT';
+	text: string;
+	insertionPoint: Point3D;
+	alignmentPoint?: Point3D;
+	height: number;
+	rotation: number; // Degrees
+	widthFactor: number;
+	obliqueAngle: number;
+	style: string;
+	hAlign: number; // Horizontal alignment (0-5)
+	vAlign: number; // Vertical alignment (0-3)
+	generationFlags: number;
 }
 
 interface DxfMTextEntity extends DxfEntityBase {
-  type: 'MTEXT';
-  text: string;            // May contain MTEXT format codes
-  insertionPoint: Point3D;
-  height: number;
-  width: number;
-  attachmentPoint: number;
-  drawingDirection: number;
-  rotation: number;
-  lineSpacingStyle: number;
-  lineSpacingFactor: number;
-  style: string;
-  textDirection?: Point3D;
-  bgFill: number;
-  bgFillColor?: number;
-  bgFillTrueColor?: number;
-  bgFillScale: number;
+	type: 'MTEXT';
+	text: string; // May contain MTEXT format codes
+	insertionPoint: Point3D;
+	height: number;
+	width: number;
+	attachmentPoint: number;
+	drawingDirection: number;
+	rotation: number;
+	lineSpacingStyle: number;
+	lineSpacingFactor: number;
+	style: string;
+	textDirection?: Point3D;
+	bgFill: number;
+	bgFillColor?: number;
+	bgFillTrueColor?: number;
+	bgFillScale: number;
 }
 ```
 
@@ -332,29 +333,29 @@ interface DxfMTextEntity extends DxfEntityBase {
 
 ```typescript
 interface DxfInsertEntity extends DxfEntityBase {
-  type: 'INSERT';
-  blockName: string;
-  insertionPoint: Point3D;
-  scaleX: number;
-  scaleY: number;
-  scaleZ: number;
-  rotation: number;          // Degrees
-  columnCount: number;       // MINSERT grid columns
-  rowCount: number;          // MINSERT grid rows
-  columnSpacing: number;
-  rowSpacing: number;
-  attribs: DxfAttrib[];
+	type: 'INSERT';
+	blockName: string;
+	insertionPoint: Point3D;
+	scaleX: number;
+	scaleY: number;
+	scaleZ: number;
+	rotation: number; // Degrees
+	columnCount: number; // MINSERT grid columns
+	rowCount: number; // MINSERT grid rows
+	columnSpacing: number;
+	rowSpacing: number;
+	attribs: DxfAttrib[];
 }
 
 interface DxfAttrib {
-  tag: string;
-  text: string;
-  insertionPoint: Point3D;
-  height: number;
-  rotation: number;
-  style: string;
-  layer: string;
-  color: number;
+	tag: string;
+	text: string;
+	insertionPoint: Point3D;
+	height: number;
+	rotation: number;
+	style: string;
+	layer: string;
+	color: number;
 }
 ```
 
@@ -362,20 +363,20 @@ interface DxfAttrib {
 
 ```typescript
 interface DxfDimensionEntity extends DxfEntityBase {
-  type: 'DIMENSION';
-  blockName: string;
-  dimStyle: string;
-  dimType: number;
-  defPoint: Point3D;
-  textMidpoint: Point3D;
-  defPoint2?: Point3D;
-  defPoint3?: Point3D;
-  defPoint4?: Point3D;
-  defPoint5?: Point3D;
-  textOverride: string;
-  rotation: number;
-  textRotation: number;
-  leaderLength: number;
+	type: 'DIMENSION';
+	blockName: string;
+	dimStyle: string;
+	dimType: number;
+	defPoint: Point3D;
+	textMidpoint: Point3D;
+	defPoint2?: Point3D;
+	defPoint3?: Point3D;
+	defPoint4?: Point3D;
+	defPoint5?: Point3D;
+	textOverride: string;
+	rotation: number;
+	textRotation: number;
+	leaderLength: number;
 }
 ```
 
@@ -383,31 +384,52 @@ interface DxfDimensionEntity extends DxfEntityBase {
 
 ```typescript
 interface DxfHatchEntity extends DxfEntityBase {
-  type: 'HATCH';
-  patternName: string;
-  solidFill: boolean;
-  associative: boolean;
-  hatchStyle: number;
-  patternType: number;
-  patternAngle: number;
-  patternScale: number;
-  boundaryPaths: DxfHatchBoundaryPath[];
+	type: 'HATCH';
+	patternName: string;
+	solidFill: boolean;
+	associative: boolean;
+	hatchStyle: number;
+	patternType: number;
+	patternAngle: number;
+	patternScale: number;
+	boundaryPaths: DxfHatchBoundaryPath[];
 }
 
 interface DxfHatchBoundaryPath {
-  type: 'polyline' | 'edges';
-  vertices?: Point2D[];
-  bulges?: number[];
-  isClosed?: boolean;
-  edges?: DxfHatchEdge[];
-  flags: number;
+	type: 'polyline' | 'edges';
+	vertices?: Point2D[];
+	bulges?: number[];
+	isClosed?: boolean;
+	edges?: DxfHatchEdge[];
+	flags: number;
 }
 
 type DxfHatchEdge =
-  | { type: 'line'; start: Point2D; end: Point2D }
-  | { type: 'arc'; center: Point2D; radius: number; startAngle: number; endAngle: number; ccw: boolean }
-  | { type: 'ellipse'; center: Point2D; majorAxis: Point2D; minorRatio: number; startAngle: number; endAngle: number; ccw: boolean }
-  | { type: 'spline'; degree: number; knots: number[]; controlPoints: Point2D[]; weights?: number[] };
+	| { type: 'line'; start: Point2D; end: Point2D }
+	| {
+			type: 'arc';
+			center: Point2D;
+			radius: number;
+			startAngle: number;
+			endAngle: number;
+			ccw: boolean;
+	  }
+	| {
+			type: 'ellipse';
+			center: Point2D;
+			majorAxis: Point2D;
+			minorRatio: number;
+			startAngle: number;
+			endAngle: number;
+			ccw: boolean;
+	  }
+	| {
+			type: 'spline';
+			degree: number;
+			knots: number[];
+			controlPoints: Point2D[];
+			weights?: number[];
+	  };
 ```
 
 ## FormatConverter
@@ -416,11 +438,11 @@ Interface for adding support for non-DXF file formats:
 
 ```typescript
 interface FormatConverter {
-  /** Return true if the buffer is in this format. Check magic bytes, not extensions. */
-  detect(buffer: ArrayBuffer): boolean;
+	/** Return true if the buffer is in this format. Check magic bytes, not extensions. */
+	detect(buffer: ArrayBuffer): boolean;
 
-  /** Convert the buffer to a DXF string parseable by parseDxf(). */
-  convert(buffer: ArrayBuffer): Promise<string>;
+	/** Convert the buffer to a DXF string parseable by parseDxf(). */
+	convert(buffer: ArrayBuffer): Promise<string>;
 }
 ```
 

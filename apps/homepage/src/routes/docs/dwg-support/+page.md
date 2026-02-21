@@ -1,5 +1,6 @@
 ---
 title: DWG Support
+description: Add DWG file support via LibreDWG WASM. Converts DWG to DXF in the browser. GPL-3.0 licensed.
 ---
 
 # DWG Support
@@ -25,7 +26,7 @@ import { CadViewer } from '@cadview/core';
 import { dwgConverter } from '@cadview/dwg';
 
 const viewer = new CadViewer(canvas, {
-  formatConverters: [dwgConverter],
+	formatConverters: [dwgConverter]
 });
 
 // Now loadFile() and loadBuffer() accept both .dxf and .dwg files
@@ -37,7 +38,7 @@ For framework wrappers, pass it as a prop:
 ```tsx
 import { dwgConverter } from '@cadview/dwg';
 
-<CadViewer file={file} formatConverters={[dwgConverter]} />
+<CadViewer file={file} formatConverters={[dwgConverter]} />;
 ```
 
 ## How It Works
@@ -72,7 +73,7 @@ Host the WASM binary on your own server:
 import { initWasm } from '@cadview/dwg';
 
 await initWasm({
-  wasmUrl: '/assets/libredwg.wasm',
+	wasmUrl: '/assets/libredwg.wasm'
 });
 ```
 
@@ -82,8 +83,8 @@ Or pass it through the converter options:
 import { convertDwgToDxf } from '@cadview/dwg';
 
 const dxfString = await convertDwgToDxf(buffer, {
-  wasmUrl: '/assets/libredwg.wasm',
-  timeout: 60000,  // 60 seconds
+	wasmUrl: '/assets/libredwg.wasm',
+	timeout: 60000 // 60 seconds
 });
 ```
 
@@ -93,7 +94,7 @@ const dxfString = await convertDwgToDxf(buffer, {
 import { isWasmReady } from '@cadview/dwg';
 
 if (isWasmReady()) {
-  console.log('WASM module is loaded and ready');
+	console.log('WASM module is loaded and ready');
 }
 ```
 
@@ -105,28 +106,28 @@ Inspect DWG files without converting them:
 import { isDwg, getDwgVersion, getDwgReleaseName } from '@cadview/dwg';
 
 // Check if a buffer is a DWG file
-isDwg(buffer);  // true or false
+isDwg(buffer); // true or false
 
 // Get the version string
-getDwgVersion(buffer);  // "AC1032"
+getDwgVersion(buffer); // "AC1032"
 
 // Get the human-readable release name
-getDwgReleaseName('AC1032');  // "R2018"
+getDwgReleaseName('AC1032'); // "R2018"
 ```
 
 ## Supported Versions
 
-| Version Code | AutoCAD Release | Supported |
-|-------------|-----------------|-----------|
-| AC1009 | R11/R12 | No (too old) |
-| AC1012 | R13 | Yes |
-| AC1014 | R14 | Yes |
-| AC1015 | R2000 | Yes |
-| AC1018 | R2004 | Yes |
-| AC1021 | R2007 | Yes |
-| AC1024 | R2010 | Yes |
-| AC1027 | R2013 | Yes |
-| AC1032 | R2018 | Yes |
+| Version Code | AutoCAD Release | Supported    |
+| ------------ | --------------- | ------------ |
+| AC1009       | R11/R12         | No (too old) |
+| AC1012       | R13             | Yes          |
+| AC1014       | R14             | Yes          |
+| AC1015       | R2000           | Yes          |
+| AC1018       | R2004           | Yes          |
+| AC1021       | R2007           | Yes          |
+| AC1024       | R2010           | Yes          |
+| AC1027       | R2013           | Yes          |
+| AC1032       | R2018           | Yes          |
 
 Minimum supported version is **AC1012 (R13)**.
 
@@ -134,8 +135,8 @@ Minimum supported version is **AC1012 (R13)**.
 
 ```typescript
 interface ConvertOptions {
-  wasmUrl?: string;   // Custom URL for the WASM binary
-  timeout?: number;   // Timeout in ms (default: 30000, set 0 to disable)
+	wasmUrl?: string; // Custom URL for the WASM binary
+	timeout?: number; // Timeout in ms (default: 30000, set 0 to disable)
 }
 ```
 
@@ -147,7 +148,7 @@ For advanced use cases, call the conversion function directly:
 import { convertDwgToDxf } from '@cadview/dwg';
 
 const dxfString = await convertDwgToDxf(dwgBuffer, {
-  timeout: 60000,
+	timeout: 60000
 });
 
 // Parse the DXF string with the core parser
@@ -161,8 +162,8 @@ const doc = parseDxf(dxfString);
 
 ```typescript
 interface FormatConverter {
-  detect(buffer: ArrayBuffer): boolean;
-  convert(buffer: ArrayBuffer): Promise<string>;
+	detect(buffer: ArrayBuffer): boolean;
+	convert(buffer: ArrayBuffer): Promise<string>;
 }
 ```
 

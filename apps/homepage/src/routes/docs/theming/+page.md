@@ -1,5 +1,6 @@
 ---
 title: Theming
+description: Built-in dark and light themes with full color customization. Color resolution follows the DXF specification.
 ---
 
 # Theming
@@ -65,8 +66,8 @@ Or via the constructor:
 
 ```typescript
 const viewer = new CadViewer(canvas, {
-  theme: 'dark',
-  backgroundColor: '#0a0a0a',
+	theme: 'dark',
+	backgroundColor: '#0a0a0a'
 });
 ```
 
@@ -76,12 +77,12 @@ Both themes implement the `ThemeConfig` interface:
 
 ```typescript
 interface ThemeConfig {
-  backgroundColor: string;      // Canvas background
-  defaultEntityColor: string;   // Fallback entity color
-  selectionColor: string;       // Selected entity highlight
-  measureColor: string;         // Measurement overlay color
-  gridColor: string;            // Grid line color
-  crosshairColor: string;       // Crosshair cursor color
+	backgroundColor: string; // Canvas background
+	defaultEntityColor: string; // Fallback entity color
+	selectionColor: string; // Selected entity highlight
+	measureColor: string; // Measurement overlay color
+	gridColor: string; // Grid line color
+	crosshairColor: string; // Crosshair cursor color
 }
 ```
 
@@ -90,8 +91,8 @@ Access the theme configs directly:
 ```typescript
 import { THEMES } from '@cadview/core';
 
-console.log(THEMES.dark.backgroundColor);  // '#1a1a2e'
-console.log(THEMES.light.selectionColor);  // '#0066ff'
+console.log(THEMES.dark.backgroundColor); // '#1a1a2e'
+console.log(THEMES.light.selectionColor); // '#0066ff'
 ```
 
 ## Color Resolution Chain
@@ -104,6 +105,7 @@ Entity colors are resolved following a specific precedence:
 4. **Theme default** &mdash; `defaultEntityColor` from the active theme
 
 Special ACI values:
+
 - **0 (BYBLOCK)** &mdash; Inherits color from the parent block INSERT
 - **256 (BYLAYER)** &mdash; Inherits color from the entity's layer
 - **7 (White/Black)** &mdash; Automatically swaps between `#ffffff` and `#000000` based on the active theme
@@ -116,17 +118,17 @@ The AutoCAD Color Index (ACI) maps integers 1&ndash;255 to specific colors. @cad
 import { aciToHex, aciToDisplayColor, trueColorToHex } from '@cadview/core';
 
 // Convert ACI index to hex color
-aciToHex(1);    // '#ff0000' (red)
-aciToHex(3);    // '#00ff00' (green)
-aciToHex(5);    // '#0000ff' (blue)
-aciToHex(7);    // '#ffffff' (white)
+aciToHex(1); // '#ff0000' (red)
+aciToHex(3); // '#00ff00' (green)
+aciToHex(5); // '#0000ff' (blue)
+aciToHex(7); // '#ffffff' (white)
 
 // Theme-aware conversion (color 7 swaps for light themes)
-aciToDisplayColor(7, true);   // '#ffffff' (dark theme)
-aciToDisplayColor(7, false);  // '#000000' (light theme)
+aciToDisplayColor(7, true); // '#ffffff' (dark theme)
+aciToDisplayColor(7, false); // '#000000' (light theme)
 
 // Convert DXF true color (24-bit packed integer) to hex
-trueColorToHex(16711680);  // '#ff0000'
+trueColorToHex(16711680); // '#ff0000'
 ```
 
 ## Layer Color Overrides
@@ -148,10 +150,10 @@ For custom rendering or data extraction, use the exported resolution function:
 import { resolveEntityColor } from '@cadview/core';
 
 const color = resolveEntityColor(
-  entity,               // The entity
-  document.layers,      // Layer map from DxfDocument
-  'dark',               // Active theme
-  '#ffffff',            // Parent color (for BYBLOCK resolution)
+	entity, // The entity
+	document.layers, // Layer map from DxfDocument
+	'dark', // Active theme
+	'#ffffff' // Parent color (for BYBLOCK resolution)
 );
 // Returns a hex color string like '#ff0000'
 ```
