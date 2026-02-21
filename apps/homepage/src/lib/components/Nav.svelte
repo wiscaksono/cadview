@@ -10,7 +10,8 @@
 	const navLinks = [
 		{ href: '#features', label: 'Features', index: '01' },
 		{ href: '#demo', label: 'Demo', index: '02' },
-		{ href: '#examples', label: 'Code', index: '03' }
+		{ href: '#examples', label: 'Code', index: '03' },
+		{ href: '/docs', label: 'Docs', index: '04' }
 	];
 
 	function toggleMenu() {
