@@ -59,14 +59,14 @@
 	</div>
 </header>
 
-<div class="docs-layout">
+<main class="docs-layout">
 	<DocsSidebar bind:open={sidebarOpen} />
 
 	<div class="docs-content">
 		<div class="docs-content-inner">
-		<article class="prose" id="docs-content">
-			{@render children()}
-		</article>
+			<article class="prose" id="docs-content">
+				{@render children()}
+			</article>
 			<PrevNextNav />
 		</div>
 
@@ -74,7 +74,7 @@
 			<TableOfContents />
 		</aside>
 	</div>
-</div>
+</main>
 
 <style>
 	/* ─── Skip link ───────────────────────────────────────── */
