@@ -9,11 +9,11 @@ import { createHighlighter } from 'shiki';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Lazy singleton highlighter matching the @cadview design system
-let highlighterInstance = null;
+let highlighterPromise = null;
 
 async function getHighlighter() {
-	if (!highlighterInstance) {
-		highlighterInstance = await createHighlighter({
+	if (!highlighterPromise) {
+		highlighterPromise = createHighlighter({
 			themes: [
 				{
 					name: 'cadview-dark',
@@ -97,7 +97,7 @@ async function getHighlighter() {
 			langs: ['typescript', 'tsx', 'svelte', 'vue', 'bash', 'html', 'css', 'json']
 		});
 	}
-	return highlighterInstance;
+	return highlighterPromise;
 }
 
 /** @type {import('mdsvex').MdsvexOptions} */

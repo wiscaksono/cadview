@@ -1,5 +1,5 @@
 <script>
-	let { title, description } = $props();
+	let { title, description, children } = $props();
 </script>
 
 <svelte:head>
@@ -11,4 +11,4 @@
 	<meta property="og:type" content="article" />
 </svelte:head>
 
-<slot />
+{@render children?.()}

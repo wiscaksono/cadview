@@ -10,7 +10,5 @@ export const load = async () => {
 		})
 	);
 
-	console.log(highlightedCode)
-
 	return { highlightedCode };
 };
