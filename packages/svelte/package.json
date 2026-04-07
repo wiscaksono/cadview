@@ -41,9 +41,9 @@
   "devDependencies": {
     "@cadview/core": "workspace:*",
     "@sveltejs/package": "^2.0.0",
-    "svelte": "^5.0.0",
-    "svelte-check": "^4.0.0",
-    "typescript": "^5.7.0"
+    "svelte": "^5.55.1",
+    "svelte-check": "^4.4.6",
+    "typescript": "^5.9.3"
   },
   "sideEffects": false
 }
