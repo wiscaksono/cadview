@@ -59,10 +59,10 @@
     "rbush": "^4.0.1"
   },
   "devDependencies": {
-    "esbuild": "^0.27.3",
+    "esbuild": "^0.28.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   },
   "sideEffects": false
 }
