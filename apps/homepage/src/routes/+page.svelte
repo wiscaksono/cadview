@@ -8,6 +8,8 @@
 	import Packages from '$lib/components/Packages.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import BackToTop from '$lib/components/BackToTop.svelte';
+
+	let { data }: { data: { highlightedCode: Record<string, string> } } = $props();
 </script>
 
 <svelte:head>
@@ -53,7 +55,7 @@
 	<Hero />
 	<Features />
 	<Demo />
-	<CodeExamples />
+	<CodeExamples highlightedCode={data.highlightedCode} />
 	<Entities />
 	<Packages />
 </main>

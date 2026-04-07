@@ -2,7 +2,6 @@ import { createHighlighter, type Highlighter } from 'shiki';
 
 let highlighterPromise: Promise<Highlighter> | null = null;
 
-// Custom theme matching the @cadview design system
 const cadviewTheme = {
 	name: 'cadview-dark',
 	type: 'dark' as const,
@@ -89,6 +88,7 @@ function getHighlighter(): Promise<Highlighter> {
 			langs: ['typescript', 'tsx', 'svelte', 'vue']
 		});
 	}
+
 	return highlighterPromise;
 }
 
@@ -99,8 +99,6 @@ export async function highlight(code: string, lang: string): Promise<string> {
 		theme: 'cadview-dark'
 	});
 
-	// Extract just the inner code content (strip outer <pre><code> wrappers)
-	// shiki outputs: <pre class="..." style="..."><code><span>...</span></code></pre>
 	const codeMatch = html.match(/<code>([\s\S]*?)<\/code>/);
 	return codeMatch ? codeMatch[1] : html;
 }
