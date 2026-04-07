@@ -1,29 +1,17 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { reveal } from '$lib/actions/reveal';
-	import { tabs, tabLabels, tabLangs, codeSnippets, type TabId } from '$lib/code-snippets';
+	import { tabs, tabLabels, codeSnippets, type TabId } from '$lib/code-snippets';
+
+	let {
+		highlightedCode = {}
+	}: {
+		highlightedCode?: Partial<Record<TabId, string>>;
+	} = $props();
 
 	let activeTab: TabId = $state('vanilla');
 	let copied = $state(false);
-	let highlightedCode: Record<string, string> = $state({});
-	let highlighterReady = $state(false);
 
 	let activeTabIndex = $derived(tabs.indexOf(activeTab));
-
-	onMount(async () => {
-		try {
-			const { highlight } = await import('$lib/highlight');
-			const results: Record<string, string> = {};
-			for (const tab of tabs) {
-				results[tab] = await highlight(codeSnippets[tab], tabLangs[tab]);
-			}
-			highlightedCode = results;
-			highlighterReady = true;
-		} catch {
-			// Fallback to plain text
-			highlighterReady = false;
-		}
-	});
 
 	async function copyCode() {
 		const text = codeSnippets[activeTab] ?? '';
@@ -99,7 +87,7 @@
 							<span>{i + 1}</span>
 						{/each}
 					</div>
-					{#if highlighterReady && highlightedCode[activeTab]}
+					{#if highlightedCode[activeTab]}
 						<pre class="code-pre"><code>{@html highlightedCode[activeTab]}</code></pre>
 					{:else}
 						<pre class="code-pre"><code>{@html escapeHtml(codeSnippets[activeTab] ?? '')}</code
